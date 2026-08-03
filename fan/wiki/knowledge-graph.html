@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>vLLM 语义路由 · 知识图谱</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #0a0e17;
+  color: #e0e0e0;
+  overflow: hidden;
+  height: 100vh;
+}
+#app { display: flex; height: 100vh; }
+
+/* 左侧索引面板 */
+#sidebar {
+  width: 260px;
+  background: #111827;
+  border-right: 1px solid #1f2937;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#sidebar h2 {
+  padding: 16px;
+  font-size: 14px;
+  color: #9ca3af;
+  border-bottom: 1px solid #1f2937;
+  letter-spacing: 2px;
+}
+#search {
+  margin: 12px 16px;
+  padding: 8px 12px;
+  background: #1f2937;
+  border: 1px solid #374151;
+  border-radius: 6px;
+  color: #e0e0e0;
+  font-size: 13px;
+  outline: none;
+}
+#search:focus { border-color: #60a5fa; }
+#node-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.node-item {
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s;
+}
+.node-item:hover { background: #1f2937; }
+.node-item.active { background: #1e3a5f; color: #60a5fa; }
+.node-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* 中间图谱画布 */
+#canvas-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+canvas { display: block; }
+#legend {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  background: rgba(17,24,39,0.9);
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  display: flex;
+  gap: 16px;
+}
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+/* 右侧详情面板 */
+#detail {
+  width: 300px;
+  background: #111827;
+  border-left: 1px solid #1f2937;
+  padding: 24px;
+  overflow-y: auto;
+}
+#detail h3 {
+  font-size: 18px;
+  color: #f9fafb;
+  margin-bottom: 8px;
+}
+#detail .meta {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 16px;
+}
+#detail .section-title {
+  font-size: 11px;
+  color: #9ca3af;
+  letter-spacing: 1px;
+  margin: 16px 0 8px;
+  text-transform: uppercase;
+}
+#detail .neighbor {
+  padding: 6px 0;
+  font-size: 13px;
+  color: #93c5fd;
+  cursor: pointer;
+}
+#detail .neighbor:hover { text-decoration: underline; }
+#detail .insight {
+  padding: 8px 12px;
+  background: #1f2937;
+  border-radius: 6px;
+  font-size: 12px;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+#placeholder {
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.8;
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebar">
+    <h2>文 献 索 引</h2>
+    <input type="text" id="search" placeholder="搜索节点...">
+    <div id="node-list"></div>
+  </div>
+  <div id="canvas-wrap">
+    <canvas id="graph"></canvas>
+    <div id="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#60a5fa"></div>实体</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#34d399"></div>处理阶段</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>主题</div>
+    </div>
+  </div>
+  <div id="detail">
+    <div id="placeholder">
+      点击左侧节点或图中圆点<br>查看详细信息与关联
+    </div>
+    <div id="detail-content" style="display:none">
+      <h3 id="d-title"></h3>
+      <div class="meta" id="d-meta"></div>
+      <div class="section-title">相邻节点</div>
+      <div id="d-neighbors"></div>
+      <div class="section-title">图谱洞察</div>
+      <div id="d-insights"></div>
+    </div>
+  </div>
+</div>
+
+<script id="graph-data" type="application/json">
+{"nodes":[{"id":"ExtProc","label":"ExtProc","type":"entity","community":0,"degree":11},{"id":"Decision-Engine","label":"Decision Engine","type":"entity","community":1,"degree":6},{"id":"Signal-Evaluation","label":"Signal Evaluation","type":"entity","community":1,"degree":4},{"id":"RequestContext","label":"RequestContext","type":"entity","community":0,"degree":5},{"id":"流式响应-SSE","label":"流式响应 SSE","type":"entity","community":2,"degree":5},{"id":"分布式追踪","label":"分布式追踪","type":"entity","community":3,"degree":5},{"id":"幻觉检测","label":"幻觉检测","type":"entity","community":2,"degree":3},{"id":"语义缓存","label":"语义缓存","type":"entity","community":2,"degree":4},{"id":"VSR-Headers","label":"VSR Headers","type":"entity","community":3,"degree":2},{"id":"Envoy","label":"Envoy","type":"entity","community":0,"degree":2},{"id":"OpenAIRouter","label":"OpenAIRouter","type":"entity","community":0,"degree":3},{"id":"handleRequestHeaders","label":"handleRequestHeaders","type":"handler","community":0,"degree":7},{"id":"handleRequestBody","label":"handleRequestBody","type":"handler","community":1,"degree":7},{"id":"handleResponseHeaders","label":"handleResponseHeaders","type":"handler","community":3,"degree":7},{"id":"handleResponseBody","label":"handleResponseBody","type":"handler","community":2,"degree":7},{"id":"ExtProc四阶段","label":"ExtProc 四阶段","type":"topic","community":0,"degree":8},{"id":"模型路由机制","label":"模型路由机制","type":"topic","community":1,"degree":5}],"edges":[{"source":"ExtProc","target":"Envoy","weight":1},{"source":"ExtProc","target":"OpenAIRouter","weight":1},{"source":"ExtProc","target":"RequestContext","weight":2},{"source":"ExtProc","target":"handleRequestHeaders","weight":2},{"source":"ExtProc","target":"handleRequestBody","weight":2},{"source":"ExtProc","target":"handleResponseHeaders","weight":2},{"source":"ExtProc","target":"handleResponseBody","weight":2},{"source":"handleRequestHeaders","target":"RequestContext","weight":2},{"source":"handleRequestHeaders","target":"分布式追踪","weight":2},{"source":"handleRequestBody","target":"Decision-Engine","weight":3},{"source":"Decision-Engine","target":"Signal-Evaluation","weight":3},{"source":"handleRequestBody","target":"语义缓存","weight":1},{"source":"handleResponseHeaders","target":"VSR-Headers","weight":2},{"source":"handleResponseHeaders","target":"分布式追踪","weight":2},{"source":"handleResponseHeaders","target":"流式响应-SSE","weight":2},{"source":"handleResponseBody","target":"幻觉检测","weight":2},{"source":"handleResponseBody","target":"流式响应-SSE","weight":2},{"source":"handleResponseBody","target":"语义缓存","weight":2},{"source":"流式响应-SSE","target":"语义缓存","weight":1},{"source":"幻觉检测","target":"ExtProc","weight":1},{"source":"分布式追踪","target":"ExtProc","weight":1},{"source":"ExtProc四阶段","target":"ExtProc","weight":2},{"source":"ExtProc四阶段","target":"handleRequestHeaders","weight":1},{"source":"ExtProc四阶段","target":"handleRequestBody","weight":1},{"source":"ExtProc四阶段","target":"handleResponseHeaders","weight":1},{"source":"ExtProc四阶段","target":"handleResponseBody","weight":1},{"source":"ExtProc四阶段","target":"Decision-Engine","weight":1},{"source":"ExtProc四阶段","target":"RequestContext","weight":1},{"source":"模型路由机制","target":"Decision-Engine","weight":2},{"source":"模型路由机制","target":"Signal-Evaluation","weight":2},{"source":"模型路由机制","target":"ExtProc四阶段","weight":1}],"insights":[{"type":"hub","node":"ExtProc","detail":"中心枢纽节点，连接 11 个节点"},{"type":"bridge","node":"handleRequestBody","detail":"连接请求处理与决策引擎两个社区"},{"type":"bridge","node":"handleResponseHeaders","detail":"连接可观测性(追踪/VSR)与流式处理社区"},{"type":"cluster","community":"决策社区","nodes":["Decision-Engine","Signal-Evaluation","handleRequestBody","模型路由机制"]},{"type":"cluster","community":"响应处理社区","nodes":["handleResponseBody","流式响应-SSE","语义缓存","幻觉检测"]}]}
+</script>
+
+<script>
+(function() {
+  const data = JSON.parse(document.getElementById('graph-data').textContent);
+  const canvas = document.getElementById('graph');
+  const ctx = canvas.getContext('2d');
+  const wrap = document.getElementById('canvas-wrap');
+
+  const colors = {
+    entity: '#60a5fa',
+    handler: '#34d399',
+    topic: '#f59e0b'
+  };
+
+  let W, H;
+  function resize() {
+    W = wrap.clientWidth;
+    H = wrap.clientHeight;
+    canvas.width = W * devicePixelRatio;
+    canvas.height = H * devicePixelRatio;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  }
+  resize();
+  window.addEventListener('resize', () => { resize(); draw(); });
+
+  // Force-directed layout
+  const nodes = data.nodes.map((n, i) => ({
+    ...n,
+    x: W/2 + (Math.cos(i * 2.4) * 180) + (Math.random() - 0.5) * 60,
+    y: H/2 + (Math.sin(i * 2.4) * 150) + (Math.random() - 0.5) * 60,
+    vx: 0, vy: 0,
+    radius: Math.max(8, Math.min(24, n.degree * 2.5))
+  }));
+  const edges = data.edges.map(e => ({
+    source: nodes.find(n => n.id === e.source),
+    target: nodes.find(n => n.id === e.target),
+    weight: e.weight
+  }));
+
+  const nodeMap = {};
+  nodes.forEach(n => nodeMap[n.id] = n);
+
+  // Simulate
+  function simulate(iterations) {
+    for (let iter = 0; iter < iterations; iter++) {
+      const alpha = 0.3 * (1 - iter / iterations);
+      // Repulsion
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          let dx = nodes[j].x - nodes[i].x;
+          let dy = nodes[j].y - nodes[i].y;
+          let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+          let force = 8000 / (dist * dist);
+          let fx = dx / dist * force * alpha;
+          let fy = dy / dist * force * alpha;
+          nodes[i].vx -= fx; nodes[i].vy -= fy;
+          nodes[j].vx += fx; nodes[j].vy += fy;
+        }
+      }
+      // Attraction
+      edges.forEach(e => {
+        let dx = e.target.x - e.source.x;
+        let dy = e.target.y - e.source.y;
+        let dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        let force = (dist - 120) * 0.01 * e.weight * alpha;
+        let fx = dx / dist * force;
+        let fy = dy / dist * force;
+        e.source.vx += fx; e.source.vy += fy;
+        e.target.vx -= fx; e.target.vy -= fy;
+      });
+      // Center gravity
+      nodes.forEach(n => {
+        n.vx += (W/2 - n.x) * 0.002 * alpha;
+        n.vy += (H/2 - n.y) * 0.002 * alpha;
+        n.x += n.vx; n.y += n.vy;
+        n.vx *= 0.6; n.vy *= 0.6;
+        n.x = Math.max(40, Math.min(W - 40, n.x));
+        n.y = Math.max(40, Math.min(H - 40, n.y));
+      });
+    }
+  }
+  simulate(300);
+
+  let selectedNode = null;
+  let hoveredNode = null;
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    // Edges
+    edges.forEach(e => {
+      const isHighlight = selectedNode && (e.source.id === selectedNode.id || e.target.id === selectedNode.id);
+      ctx.beginPath();
+      ctx.moveTo(e.source.x, e.source.y);
+      ctx.lineTo(e.target.x, e.target.y);
+      ctx.strokeStyle = isHighlight ? 'rgba(147,197,253,0.6)' : 'rgba(75,85,99,0.3)';
+      ctx.lineWidth = isHighlight ? e.weight * 1.5 : e.weight * 0.8;
+      ctx.stroke();
+    });
+
+    // Nodes
+    nodes.forEach(n => {
+      const isSelected = selectedNode && n.id === selectedNode.id;
+      const isNeighbor = selectedNode && edges.some(e =>
+        (e.source.id === selectedNode.id && e.target.id === n.id) ||
+        (e.target.id === selectedNode.id && e.source.id === n.id)
+      );
+      const isHovered = hoveredNode && n.id === hoveredNode.id;
+      const dimmed = selectedNode && !isSelected && !isNeighbor;
+
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.radius, 0, Math.PI * 2);
+      const baseColor = colors[n.type] || '#60a5fa';
+      ctx.fillStyle = dimmed ? baseColor + '33' : baseColor;
+      if (isSelected) {
+        ctx.shadowColor = baseColor;
+        ctx.shadowBlur = 20;
+      }
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      if (isSelected || isHovered) {
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      // Label
+      if (!dimmed || isSelected || isNeighbor) {
+        ctx.font = `${isSelected ? 'bold ' : ''}${n.radius > 14 ? 13 : 11}px -apple-system, PingFang SC, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillStyle = dimmed ? '#6b7280' : '#e5e7eb';
+        ctx.fillText(n.label, n.x, n.y + n.radius + 14);
+      }
+    });
+  }
+  draw();
+
+  // Interaction
+  function getNodeAt(mx, my) {
+    for (let i = nodes.length - 1; i >= 0; i--) {
+      const n = nodes[i];
+      const dx = mx - n.x, dy = my - n.y;
+      if (dx*dx + dy*dy <= (n.radius + 4) * (n.radius + 4)) return n;
+    }
+    return null;
+  }
+
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const node = getNodeAt(mx, my);
+    hoveredNode = node;
+    canvas.style.cursor = node ? 'pointer' : 'default';
+    draw();
+  });
+
+  canvas.addEventListener('click', e => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const node = getNodeAt(mx, my);
+    selectNode(node);
+  });
+
+  function selectNode(node) {
+    selectedNode = node;
+    document.querySelectorAll('.node-item').forEach(el => {
+      el.classList.toggle('active', el.dataset.id === (node && node.id));
+    });
+    if (node) {
+      document.getElementById('placeholder').style.display = 'none';
+      document.getElementById('detail-content').style.display = 'block';
+      document.getElementById('d-title').textContent = node.label;
+      document.getElementById('d-meta').textContent = `类型: ${node.type} | 度数: ${node.degree} | 社区: ${node.community}`;
+
+      const neighbors = [];
+      edges.forEach(e => {
+        if (e.source.id === node.id) neighbors.push(e.target);
+        if (e.target.id === node.id) neighbors.push(e.source);
+      });
+      const nDiv = document.getElementById('d-neighbors');
+      nDiv.innerHTML = [...new Set(neighbors.map(n => n.id))].map(id => {
+        const n = nodeMap[id];
+        return `<div class="neighbor" data-id="${id}">${n.label}</div>`;
+      }).join('');
+      nDiv.querySelectorAll('.neighbor').forEach(el => {
+        el.addEventListener('click', () => selectNode(nodeMap[el.dataset.id]));
+      });
+
+      const iDiv = document.getElementById('d-insights');
+      const relevantInsights = data.insights.filter(ins =>
+        ins.node === node.id || (ins.nodes && ins.nodes.includes(node.id))
+      );
+      iDiv.innerHTML = relevantInsights.length
+        ? relevantInsights.map(i => `<div class="insight">${i.detail}</div>`).join('')
+        : '<div class="insight" style="color:#6b7280">暂无与此节点相关的洞察</div>';
+    } else {
+      document.getElementById('placeholder').style.display = 'block';
+      document.getElementById('detail-content').style.display = 'none';
+    }
+    draw();
+  }
+
+  // Sidebar list
+  const listDiv = document.getElementById('node-list');
+  function renderList(filter) {
+    const filtered = filter
+      ? nodes.filter(n => n.label.toLowerCase().includes(filter.toLowerCase()))
+      : nodes;
+    listDiv.innerHTML = filtered.sort((a,b) => b.degree - a.degree).map(n => `
+      <div class="node-item" data-id="${n.id}">
+        <div class="node-dot" style="background:${colors[n.type]}"></div>
+        ${n.label}
+      </div>
+    `).join('');
+    listDiv.querySelectorAll('.node-item').forEach(el => {
+      el.addEventListener('click', () => selectNode(nodeMap[el.dataset.id]));
+    });
+  }
+  renderList();
+  document.getElementById('search').addEventListener('input', e => renderList(e.target.value));
+})();
+</script>
+</body>
+</html>

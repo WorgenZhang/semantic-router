@@ -203,3 +203,8 @@ Makefile.local
 candle-binding/target-mkl/
 candle-binding/target-cpu/
 .npm-cache/
+
+# Fan
+.claude/
+.gitnexus/
+AGENTS.md

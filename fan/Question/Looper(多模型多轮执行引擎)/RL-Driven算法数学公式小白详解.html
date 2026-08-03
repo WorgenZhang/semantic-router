@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RL-Driven 算法数学公式 · 小白详解</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.9;
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 50px 24px;
+            background: #0d1117;
+            color: #c9d1d9;
+        }
+        h1 {
+            color: #58a6ff;
+            font-size: 2.2em;
+            border-bottom: 3px solid #58a6ff;
+            padding-bottom: 16px;
+            margin-bottom: 40px;
+        }
+        h2 {
+            color: #f0883e;
+            margin-top: 60px;
+            margin-bottom: 20px;
+            font-size: 1.6em;
+            border-left: 5px solid #f0883e;
+            padding-left: 14px;
+        }
+        h3 {
+            color: #7ee787;
+            margin-top: 35px;
+            margin-bottom: 12px;
+            font-size: 1.2em;
+        }
+        p { margin: 12px 0; }
+        .analogy {
+            background: #1c2d1c;
+            border: 1px solid #2ea043;
+            border-radius: 10px;
+            padding: 20px 24px;
+            margin: 20px 0;
+        }
+        .analogy::before {
+            content: "💡 生活类比";
+            display: block;
+            font-weight: bold;
+            color: #7ee787;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+        .formula-box {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-left: 4px solid #58a6ff;
+            border-radius: 8px;
+            padding: 18px 22px;
+            margin: 16px 0;
+            font-family: 'SF Mono', Menlo, monospace;
+            font-size: 0.92em;
+            line-height: 2;
+            overflow-x: auto;
+        }
+        .step-box {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            padding: 22px 26px;
+            margin: 20px 0;
+        }
+        .step-box .step-title {
+            color: #d2a8ff;
+            font-weight: bold;
+            font-size: 1.05em;
+            margin-bottom: 10px;
+        }
+        .example {
+            background: #1a1f35;
+            border: 1px solid #3d4470;
+            border-radius: 10px;
+            padding: 22px 26px;
+            margin: 20px 0;
+        }
+        .example::before {
+            content: "📝 具体例子";
+            display: block;
+            font-weight: bold;
+            color: #bc8cff;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+        .warning {
+            background: #2d1b1b;
+            border: 1px solid #f85149;
+            border-radius: 10px;
+            padding: 18px 22px;
+            margin: 20px 0;
+        }
+        .warning::before {
+            content: "⚠️ 关键理解";
+            display: block;
+            font-weight: bold;
+            color: #f85149;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+        .summary-card {
+            background: linear-gradient(135deg, #1a1f35, #161b22);
+            border: 2px solid #58a6ff;
+            border-radius: 12px;
+            padding: 26px 30px;
+            margin: 30px 0;
+        }
+        .summary-card h4 {
+            color: #58a6ff;
+            margin-bottom: 12px;
+        }
+        code {
+            background: #21262d;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.88em;
+            color: #79c0ff;
+            font-family: 'SF Mono', Menlo, monospace;
+        }
+        pre {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 18px;
+            overflow-x: auto;
+            font-size: 0.88em;
+            line-height: 1.7;
+            font-family: 'SF Mono', Menlo, monospace;
+            color: #c9d1d9;
+            margin: 14px 0;
+        }
+        strong { color: #ffa657; }
+        em { color: #7ee787; font-style: normal; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 0.92em;
+        }
+        th {
+            background: #21262d;
+            color: #58a6ff;
+            padding: 12px 10px;
+            text-align: left;
+            border: 1px solid #30363d;
+        }
+        td {
+            padding: 10px;
+            border: 1px solid #30363d;
+        }
+        tr:nth-child(even) { background: #161b22; }
+        .visual {
+            text-align: center;
+            padding: 20px;
+            margin: 16px 0;
+            font-family: 'SF Mono', Menlo, monospace;
+            font-size: 0.85em;
+            line-height: 1.4;
+            background: #0d1117;
+            border: 1px dashed #30363d;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre;
+        }
+        .toc {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            padding: 22px 28px;
+            margin: 30px 0;
+        }
+        .toc h3 { color: #58a6ff; margin-bottom: 12px; }
+        .toc ol { padding-left: 20px; }
+        .toc li { margin: 6px 0; }
+        .toc a { color: #79c0ff; text-decoration: none; }
+        .toc a:hover { text-decoration: underline; }
+        hr {
+            border: none;
+            border-top: 1px solid #21262d;
+            margin: 50px 0;
+        }
+        .badge {
+            display: inline-block;
+            background: #21262d;
+            border: 1px solid #30363d;
+            border-radius: 20px;
+            padding: 3px 12px;
+            font-size: 0.8em;
+            color: #8b949e;
+            margin-right: 6px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>RL-Driven 算法数学公式 · 小白详解</h1>
+
+<p><span class="badge">难度：零基础</span><span class="badge">论文：Router-R1</span><span class="badge">核心：Thompson Sampling</span></p>
+
+<p>这篇文档假设你<strong>完全没有</strong>概率论基础。我会用生活类比和大量具体数字来解释每一个概念。</p>
+
+<div class="toc">
+    <h3>目录</h3>
+    <ol>
+        <li><a href="#beta">Beta 分布 — "对模型好坏的信念"</a></li>
+        <li><a href="#thompson">Thompson Sampling — "掷骰子选模型"</a></li>
+        <li><a href="#multi-round">多轮选择 — "选 Top-K 并行调用"</a></li>
+        <li><a href="#feedback">反馈更新 — "越用越聪明"</a></li>
+        <li><a href="#aggregation">响应聚合 — "最终选谁的回答"</a></li>
+        <li><a href="#explore-exploit">探索 vs 利用 — "老店 vs 新店"</a></li>
+        <li><a href="#full-flow">完整流程串联</a></li>
+        <li><a href="#why-rl">为什么叫"RL-Driven"？它真的是强化学习吗？</a></li>
+    </ol>
+</div>
+
+<hr>
+
+<!-- ===================== Section 0: Why RL ===================== -->
+<h2 id="why-rl">零、为什么叫"RL-Driven"？它真的是强化学习吗？</h2>
+
+<h3>你的疑问完全合理</h3>
+<p>如果你学过强化学习（RL），你会觉得这里的算法<strong>看起来更像统计学</strong>——更新 Beta 分布、从分布里采样、选最大值——这跟我们印象中的"RL"（神经网络 + 策略梯度 + 奖励函数 + 训练 epoch）差太远了。</p>
+
+<p>你说得对，它确实<strong>不是</strong>"深度强化学习"（Deep RL）。但它<strong>是</strong>强化学习的一个经典子领域。</p>
+
+<h3>强化学习的本质定义</h3>
+<p>强化学习的核心不是神经网络，而是一个<strong>交互框架</strong>：</p>
+
+<div class="formula-box">
+    强化学习 = 智能体（Agent）与环境（Environment）的循环交互：<br><br>
+    1. 智能体观察状态（State）<br>
+    2. 智能体选择动作（Action）<br>
+    3. 环境返回奖励（Reward）<br>
+    4. 智能体更新策略（Policy）<br>
+    5. 回到第 1 步<br><br>
+    只要满足这个循环，就是强化学习。跟用不用神经网络无关。
+</div>
+
+<h3>对应到 RL-Driven 算法</h3>
+
+<table>
+    <tr><th>RL 概念</th><th>在本算法中的对应</th></tr>
+    <tr><td><strong>智能体 (Agent)</strong></td><td>路由系统（Looper）</td></tr>
+    <tr><td><strong>环境 (Environment)</strong></td><td>用户 + 各个 LLM 模型</td></tr>
+    <tr><td><strong>状态 (State)</strong></td><td>每个模型的 Beta(α, β) 参数</td></tr>
+    <tr><td><strong>动作 (Action)</strong></td><td>选择哪个/哪些模型来回答</td></tr>
+    <tr><td><strong>奖励 (Reward)</strong></td><td>用户的正/负反馈</td></tr>
+    <tr><td><strong>策略 (Policy)</strong></td><td>Thompson Sampling（从分布采样选最大）</td></tr>
+    <tr><td><strong>策略更新</strong></td><td>α++ 或 β++（更新 Beta 分布）</td></tr>
+</table>
+
+<p>所以它<strong>完全符合</strong>强化学习的定义——只是策略更新规则恰好是贝叶斯统计更新，而不是梯度下降。</p>
+
+<h3>更准确地说，它是哪种 RL？</h3>
+
+<div class="step-box">
+    <div class="step-title">Multi-Armed Bandit（多臂老虎机）</div>
+<p>这是强化学习中最简单的子问题：</p>
+<pre>
+你面前有 N 台老虎机（每台对应一个模型）
+每台老虎机的中奖概率不同，但你不知道具体是多少
+你每次只能拉一台（选一个模型）
+拉完之后看结果（用户反馈）
+目标：用最少的尝试次数，找到最好的那台，并尽可能多地拉它
+
+这就是 Multi-Armed Bandit 问题。
+Thompson Sampling 是解决这个问题的经典最优算法之一。
+</pre>
+</div>
+
+<h3>RL 的光谱：从简单到复杂</h3>
+
+<div class="visual">
+简单 ◄──────────────────────────────────────────────────► 复杂
+
+  Multi-Armed        Contextual         Tabular         Deep RL
+    Bandit             Bandit             RL           (DQN, PPO...)
+      │                  │                 │                │
+      │                  │                 │                │
+  "选哪台机器"      "根据场景选"      "考虑状态转移"    "用神经网络"
+      │                  │                 │                │
+      │                  │                 │                │
+  ┌─────────┐            │                 │                │
+  │ ★我们在这 │           │                 │                │
+  └─────────┘            │                 │                │
+                         │                 │                │
+  Thompson Sampling   LinUCB           Q-Learning      Actor-Critic
+  ε-Greedy            Neural Bandit    SARSA           TRPO, PPO
+  UCB                                  Monte Carlo     SAC, TD3
+</div>
+
+<h3>那为什么不叫"Bandit-Driven"？</h3>
+<p>几个原因：</p>
+<ul>
+    <li><strong>学术传统</strong>：Multi-Armed Bandit 在很多教材里被归入 RL 的第一章。Sutton & Barto 的经典 RL 教材就是从 Bandit 开始讲的。</li>
+    <li><strong>论文命名</strong>：Router-R1 论文用了 "RL" 这个更广为人知的术语，因为它强调的是"从交互反馈中学习"这个核心理念。</li>
+    <li><strong>未来扩展性</strong>：当前实现是 Bandit，但框架设计上预留了升级为 Contextual Bandit（根据问题类型选模型）甚至更复杂 RL 的空间。</li>
+</ul>
+
+<div class="warning">
+<strong>总结你的疑问</strong>：<br><br>
+你说"更偏统计"——<strong>对</strong>，Thompson Sampling 本身是贝叶斯统计方法。<br>
+但它被用在一个<strong>在线交互决策</strong>的框架中（选动作→获奖励→更新策略→重复），这个框架就是 RL。<br><br>
+所以准确说法是：<br>
+<code>RL-Driven = 用贝叶斯统计方法（Thompson Sampling）来解决一个强化学习问题（Multi-Armed Bandit）</code>
+</div>
+
+<h3>一个直觉性的对比</h3>
+
+<div class="example">
+<pre>
+❌ 不是 RL 的例子：
+  "我有 1000 条历史数据，训练一个模型，部署后不再更新"
+  → 这是监督学习，没有交互循环
+
+✅ 是 RL 的例子（就是我们这个算法）：
+  "每来一个请求，我选一个模型回答，看用户反馈，调整下次选择"
+  → 有交互循环（选择→反馈→更新→选择...）
+  → 有探索-利用权衡
+  → 目标是最大化长期累积奖励
+
+区别不在于"用不用神经网络"，而在于"有没有在线交互学习的循环"。
+</pre>
+</div>
+
+<div class="summary-card">
+    <h4>为什么叫 RL-Driven · 一句话总结</h4>
+    <p>它是 RL 中最简单的子问题（Multi-Armed Bandit）的最优解法（Thompson Sampling）。没有神经网络不代表不是 RL——RL 的本质是"从交互反馈中学习决策"，而这恰恰是这个算法在做的事。</p>
+</div>
+
+<hr>
+
+<!-- ===================== Section 1: Beta ===================== -->
+<h2 id="beta">一、Beta 分布 — "对模型好坏的信念"</h2>
+
+<h3>先回答一个问题：什么是"分布"？</h3>
+<p>"分布"就是描述<strong>一个值可能落在哪里</strong>的方式。比如说你抛硬币，正面朝上的概率可能是 0.5——但你不确定，也许是 0.4~0.6 之间的某个值。"分布"就是用来描述"你有多相信这个值是 0.4、0.5 还是 0.6"。</p>
+
+<div class="analogy">
+<p>想象你新搬到一个城市，附近有 3 家餐厅，你不知道哪家好吃。</p>
+<p>你心里对每家餐厅有个模糊的印象："可能好吃，也可能难吃，我不确定。"</p>
+<p>这个"不确定的印象"就是一个<strong>分布</strong>——它不是一个固定的数字，而是一个范围。</p>
+</div>
+
+<h3>Beta 分布是什么？</h3>
+<p>Beta 分布是专门用来描述<strong>"一个概率值可能是多少"</strong>的分布。它只有两个参数：</p>
+
+<div class="formula-box">
+    Beta(α, β)<br><br>
+    α = "成功次数" + 1（可以理解为"好评数 + 1"）<br>
+    β = "失败次数" + 1（可以理解为"差评数 + 1"）
+</div>
+
+<p>为什么要 +1？因为在什么数据都没有的时候，我们设 α=1, β=1，表示"完全不知道，好坏各半"。这个 +1 叫做<strong>先验</strong>（prior），是我们在看到数据之前的默认信念。</p>
+
+<h3>Alpha 和 Beta 怎么影响形状？</h3>
+
+<div class="visual">
+Beta(1,1) → 完全平坦（什么都不知道）
+
+概率 ▲
+  1 │ ████████████████████████████████
+    │ ████████████████████████████████
+    │ ████████████████████████████████
+    └──────────────────────────────────► 模型好的概率
+    0                                 1
+
+
+Beta(5,2) → 偏右（倾向认为模型好）
+
+概率 ▲
+  1 │                      ████████
+    │                 ██████████████████
+    │           ████████████████████████████
+    │     ████████████████████████████████████
+    └──────────────────────────────────► 模型好的概率
+    0                                 1
+
+
+Beta(2,8) → 偏左（倾向认为模型差）
+
+概率 ▲
+  1 │ ██████
+    │ ██████████████
+    │ ██████████████████████
+    │ ██████████████████████████████
+    └──────────────────────────────────► 模型好的概率
+    0                                 1
+</div>
+
+<h3>均值公式（你认为这个模型有多好）</h3>
+<div class="formula-box">
+    均值 = α / (α + β)<br><br>
+    例子：<br>
+    Beta(1, 1) → 均值 = 1/(1+1) = 0.50 （完全不确定）<br>
+    Beta(5, 2) → 均值 = 5/(5+2) = 0.71 （偏好）<br>
+    Beta(2, 8) → 均值 = 2/(2+8) = 0.20 （很差）<br>
+    Beta(50, 5) → 均值 = 50/55 = 0.91（很棒）
+</div>
+
+<h3>方差公式（你有多确定这个判断）</h3>
+<div class="formula-box">
+    方差 = (α × β) / ((α + β)² × (α + β + 1))<br><br>
+    方差越小 → 你越确定<br>
+    方差越大 → 你越不确定<br><br>
+    例子：<br>
+    Beta(1, 1) → 方差 = 1/(4×3) = 0.083  （非常不确定）<br>
+    Beta(5, 2) → 方差 = 10/(49×8) = 0.026 （中等确定）<br>
+    Beta(50, 5) → 方差 = 250/(3025×56) = 0.0015 （非常确定）
+</div>
+
+<div class="analogy">
+<p><strong>餐厅类比</strong>：</p>
+<p>你去了一家餐厅 2 次，1 次好吃 1 次难吃 → Beta(2, 2)，均值 0.5，方差大（你不确定它到底好不好）</p>
+<p>你去了另一家 100 次，90 次好吃 10 次难吃 → Beta(91, 11)，均值 0.89，方差很小（你非常确定它好吃）</p>
+</div>
+
+<div class="summary-card">
+    <h4>Beta 分布一句话总结</h4>
+    <p>Beta(α, β) 就是用"好评数"和"差评数"来描述你对"模型好的概率"的信念。数据越多，信念越坚定（方差越小）。</p>
+</div>
+
+<hr>
+
+<!-- ===================== Section 2: Thompson ===================== -->
+<h2 id="thompson">二、Thompson Sampling — "掷骰子选模型"</h2>
+
+<h3>核心问题</h3>
+<p>你有 3 个模型，每个模型维护一个 Beta 分布。现在来了一个用户请求，你该选哪个模型来回答？</p>
+
+<p>最简单的做法是：<strong>选均值最高的</strong>。但这有一个问题——</p>
+
+<div class="warning">
+如果你总是选均值最高的，你就<strong>永远不会去试新模型</strong>。<br><br>
+假设模型 A 早期碰巧表现好（均值 0.8），新加入的模型 C 可能更好但你永远不去试，就永远不知道。<br>
+这就是经典的<strong>"探索-利用困境"</strong>（Exploration-Exploitation Dilemma）。
+</div>
+
+<h3>Thompson Sampling 的天才想法</h3>
+<p>不是选均值最高的，而是：<strong>从每个模型的 Beta 分布里随机抽一个数，选抽到数字最大的那个模型。</strong></p>
+
+<div class="formula-box">
+    对每个模型 m：<br>
+    &nbsp;&nbsp;从 Beta(α_m, β_m) 中随机采样一个值 → sample_m<br><br>
+    选择：selected_model = argmax(sample_m)  （选采样值最大的那个）
+</div>
+
+<div class="analogy">
+<p><strong>掷骰子类比</strong>：</p>
+<p>每个模型有一个"偏心骰子"。表现好的模型的骰子倾向掷出高数字，表现差的倾向掷出低数字，新模型的骰子完全随机。</p>
+<p>每次来请求时，所有模型同时掷骰子，谁掷的点数高，谁就上场回答。</p>
+<p>这样：表现好的模型<em>大多数时候</em>会赢，但新模型<em>偶尔</em>也能掷出高点数而获得机会。</p>
+</div>
+
+<h3>采样的数学实现（Gamma 分布法）</h3>
+<p>计算机怎么从 Beta(α, β) 里抽一个随机数？用一个巧妙的技巧：</p>
+
+<div class="formula-box">
+    要从 Beta(α, β) 中采样一个值：<br><br>
+    第1步：g1 = 从 Gamma(α, 1) 中采样一个随机数<br>
+    第2步：g2 = 从 Gamma(β, 1) 中采样一个随机数<br>
+    第3步：sample = g1 / (g1 + g2)<br><br>
+    结果 sample 一定在 [0, 1] 之间 ✓
+</div>
+
+<p>你不需要理解 Gamma 分布是什么。只需知道这是一个数学上等价的计算技巧。就像你不需要知道 CPU 怎么做除法，你只需要知道 <code>5/3 = 1.67</code>。</p>
+
+<div class="example">
+<p><strong>3 个模型进行 Thompson Sampling：</strong></p>
+<pre>
+模型 A：Beta(α=10, β=2) ← 之前表现不错
+  g1 = Gamma(10, 1) 采样得到 9.3
+  g2 = Gamma(2, 1)  采样得到 1.8
+  sample_A = 9.3 / (9.3 + 1.8) = 0.84
+
+模型 B：Beta(α=3, β=7) ← 之前表现不太好
+  g1 = Gamma(3, 1) 采样得到 2.1
+  g2 = Gamma(7, 1) 采样得到 7.5
+  sample_B = 2.1 / (2.1 + 7.5) = 0.22
+
+模型 C：Beta(α=1, β=1) ← 新模型，什么都不知道
+  g1 = Gamma(1, 1) 采样得到 0.9
+  g2 = Gamma(1, 1) 采样得到 0.4
+  sample_C = 0.9 / (0.9 + 0.4) = 0.69
+
+本轮选择：模型 A（0.84 最高）
+
+但注意！模型 C 的 0.69 已经很接近了——下次它完全可能
+通过随机性掷出比 A 更高的数，这就是"探索"发生的时刻。
+</pre>
+</div>
+
+<div class="summary-card">
+    <h4>Thompson Sampling 一句话总结</h4>
+    <p>从每个模型的"信念分布"里掷骰子，选点数最高的。表现好的模型骰子偏高（经常赢），新模型骰子随机（偶尔赢得探索机会）。</p>
+</div>
+
+<hr>
+
+<!-- ===================== Section 3: Multi-round ===================== -->
+<h2 id="multi-round">三、多轮选择 — "选 Top-K 并行调用"</h2>
+
+<h3>为什么不只选 1 个？</h3>
+<p>在实际使用中，如果你只选 1 个模型，万一它这次回答不好怎么办？所以 RL-Driven 允许你同时选 <strong>K 个模型</strong>，并行调用，然后从中选最好的。</p>
+
+<h3>选择流程</h3>
+
+<div class="formula-box">
+    配置：max_rounds = K（比如 K=3，同时选 3 个模型）<br><br>
+    第1步：对所有候选模型进行 Thompson Sampling<br>
+    &nbsp;&nbsp;model_A: sample = 0.84<br>
+    &nbsp;&nbsp;model_B: sample = 0.22<br>
+    &nbsp;&nbsp;model_C: sample = 0.69<br>
+    &nbsp;&nbsp;model_D: sample = 0.55<br><br>
+    第2步：按 sample 值从高到低排序<br>
+    &nbsp;&nbsp;[A=0.84, C=0.69, D=0.55, B=0.22]<br><br>
+    第3步：选前 K 个<br>
+    &nbsp;&nbsp;K=3 → 选 [A, C, D]<br><br>
+    第4步：并行调用这 3 个模型，都回答同一个问题
+</div>
+
+<h3>成本感知加成（可选）</h3>
+<p>如果启用了"成本感知"模式，在采样后会乘以一个<strong>成本奖励系数</strong>：</p>
+
+<div class="formula-box">
+    adjusted_sample_m = sample_m × cost_bonus(m)<br><br>
+    cost_bonus 的含义：便宜的模型有加成，贵的模型有惩罚<br><br>
+    例子：<br>
+    model_A（贵）：sample=0.84 × cost_bonus=0.9 = 0.756<br>
+    model_C（便宜）：sample=0.69 × cost_bonus=1.2 = 0.828<br><br>
+    启用成本感知后，便宜的模型 C 反而排到了前面！
+</div>
+
+<div class="analogy">
+<p><strong>餐厅类比</strong>：</p>
+<p>你饿了，不想只去 1 家餐厅碰运气。你点了 3 家外卖（并行调用 3 个模型），等全到了之后挑最好吃的那份吃。</p>
+<p>如果你还在乎钱（成本感知），那么贵的餐厅需要明显更好吃才会被你选中。</p>
+</div>
+
+<div class="example">
+<pre>
+场景：用户问了一个代码问题，max_rounds = 2
+
+Thompson Sampling 结果：
+  codellama-34b:  sample = 0.77  ← 第1名
+  llama-3-70b:    sample = 0.65  ← 第2名
+  llama-3-8b:     sample = 0.41  ← 第3名（淘汰）
+  mistral-7b:     sample = 0.33  ← 第4名（淘汰）
+
+选中：[codellama-34b, llama-3-70b]
+并行调用这两个模型 → 各自返回一个回答
+然后进入"响应聚合"环节，决定最终用谁的回答
+</pre>
+</div>
+
+<div class="summary-card">
+    <h4>多轮选择一句话总结</h4>
+    <p>Thompson Sampling 选出 Top-K 个模型并行调用，K 越大质量越高但成本也越高。可以启用成本感知来偏向便宜模型。</p>
+</div>
+
+<hr>
+
+<!-- ===================== Section 4: Feedback ===================== -->
+<h2 id="feedback">四、反馈更新 — "越用越聪明"</h2>
+
+<h3>核心机制</h3>
+<p>Thompson Sampling 之所以能"越用越准"，是因为每次使用后都会<strong>根据反馈更新 Beta 分布</strong>。</p>
+
+<div class="formula-box">
+    当收到用户反馈时：<br><br>
+    情况1：用户说"这个回答好"（正反馈）<br>
+    &nbsp;&nbsp;α_winner += weight &nbsp;&nbsp;← 给获胜模型加"好评"<br><br>
+    情况2：用户说"这个回答不好"（负反馈）<br>
+    &nbsp;&nbsp;β_loser += weight &nbsp;&nbsp;← 给失败模型加"差评"<br><br>
+    其中：<br>
+    &nbsp;&nbsp;weight = feedback_weight × confidence<br>
+    &nbsp;&nbsp;feedback_weight = 配置值（默认 1.0）<br>
+    &nbsp;&nbsp;confidence = 反馈的可信度（0~1）
+</div>
+
+<h3>什么是 weight（权重）？</h3>
+<p>不是所有反馈都一样重要：</p>
+
+<table>
+    <tr><th>反馈类型</th><th>confidence 值</th><th>说明</th></tr>
+    <tr><td>用户手动点赞/踩</td><td>1.0</td><td>最可信，用户明确表态</td></tr>
+    <tr><td>用户选择了某个回答</td><td>0.8</td><td>隐式偏好</td></tr>
+    <tr><td>用户没有重新提问</td><td>0.3</td><td>弱信号，可能只是懒得重试</td></tr>
+    <tr><td>自动评估（如置信度）</td><td>0.5</td><td>机器判断，有噪声</td></tr>
+</table>
+
+<div class="example">
+<p><strong>完整的反馈更新过程：</strong></p>
+<pre>
+初始状态：
+  model_A: Beta(α=5, β=2)  均值=0.71
+  model_B: Beta(α=3, β=3)  均值=0.50
+
+这次选了 model_A 和 model_B 并行回答
+
+用户点赞了 model_A 的回答（显式正反馈）：
+  weight = 1.0 × 1.0 = 1.0
+  model_A: α += 1.0 → Beta(α=6, β=2)  均值=0.75 ↑
+
+用户没有对 model_B 做任何操作（隐式负反馈）：
+  weight = 1.0 × 0.3 = 0.3
+  model_B: β += 0.3 → Beta(α=3, β=3.3)  均值=0.476 ↓
+
+更新后：
+  model_A: Beta(6, 2)    均值 0.75（信心增加）
+  model_B: Beta(3, 3.3)  均值 0.476（略微下降）
+</pre>
+</div>
+
+<h3>为什么不直接用均值排序？</h3>
+<p>看了反馈更新，你可能会想："既然每次更新 α 和 β，那直接看均值不就好了？"</p>
+<p>不行！因为<strong>均值忽略了"你有多确定"这个信息</strong>。</p>
+
+<div class="example">
+<pre>
+model_X: Beta(2, 1)  均值=0.67 ← 只试过2次，全成功
+model_Y: Beta(80, 20) 均值=0.80 ← 试过100次，大部分成功
+
+如果只看均值，肯定选 Y。
+但 X 只试了 2 次就全成功，也许它其实比 Y 更好？
+
+Thompson Sampling 的做法：
+  X 的方差大 → 采样结果波动大 → 有时能采到 0.9+
+  Y 的方差小 → 采样结果稳定在 0.78~0.82
+
+所以 X 仍然有机会被选中（探索），而 Y 大多数时候会赢（利用）
+</pre>
+</div>
+
+<div class="summary-card">
+    <h4>反馈更新一句话总结</h4>
+    <p>用户觉得好 → 给模型加好评（α++）；觉得差 → 加差评（β++）。反馈可以有不同的权重。随着反馈积累，系统对每个模型的认知越来越准。</p>
+</div>
+
+<hr>
+
+<!-- ===================== Section 5: Aggregation ===================== -->
+<h2 id="aggregation">五、响应聚合 — "最终选谁的回答"</h2>
+
+<h3>问题</h3>
+<p>多轮选择选了 K 个模型并行调用，每个都返回了回答。那最终给用户看哪个？</p>
+
+<h3>当前实现的策略</h3>
+
+<div class="formula-box">
+    best_model = argmax_m { score_m }<br><br>
+    其中 score_m = 该模型在 Thompson Sampling 时的采样值<br><br>
+    简单说：谁在"掷骰子"环节掷得最高，就用谁的回答
+</div>
+
+<div class="warning">
+注意：当前实现<strong>没有</strong>做文本级融合（不像 ReMoM 那样把多个回答合并成一个）。它只是简单地选择分数最高的那个模型的回答作为输出。未来可能会加入更复杂的聚合策略。
+</div>
+
+<div class="example">
+<pre>
+选中了 3 个模型并行回答用户问题："Python 的 GIL 是什么？"
+
+Thompson Sampling 采样结果：
+  model_A: score = 0.84 → 回答："GIL 是全局解释器锁..."
+  model_C: score = 0.69 → 回答："GIL (Global Interpreter Lock)..."
+  model_D: score = 0.55 → 回答："Python 的 GIL..."
+
+聚合策略：选 score 最高的
+  → 最终输出 model_A 的回答："GIL 是全局解释器锁..."
+</pre>
+</div>
+
+<h3>为什么不用回答质量来选？</h3>
+<p>你可能会问："为什么不让另一个模型来评估哪个回答更好？"这是个好问题：</p>
+<ul>
+    <li>评估本身需要额外调用，增加延迟和成本</li>
+    <li>Thompson Sampling 的采样值本身就是对"模型质量"的估计——长期来看，好模型的采样值本来就更高</li>
+    <li>用户反馈会修正这个估计，所以系统会越来越准</li>
+</ul>
+
+<div class="summary-card">
+    <h4>响应聚合一句话总结</h4>
+    <p>并行调用的 K 个模型中，直接选 Thompson Sampling 分数最高的那个模型的回答。简单粗暴但有效——因为分数本身就代表了对模型质量的估计。</p>
+</div>
+
+<hr>
+
+<!-- ===================== Section 6: Explore vs Exploit ===================== -->
+<h2 id="explore-exploit">六、探索 vs 利用 — "老店 vs 新店"</h2>
+
+<h3>这是什么问题？</h3>
+
+<div class="analogy">
+<p>你每天中午要选一家餐厅吃饭：</p>
+<p><strong>利用（Exploit）</strong>：去你已知最好吃的那家 → 稳定获得高满意度</p>
+<p><strong>探索（Explore）</strong>：去你没试过的新店 → 可能发现更好的，但也可能踩雷</p>
+<p>如果你永远只去老店（纯利用），你就永远不知道新店可能更好。<br>如果你每天都去新店（纯探索），你的平均满意度会很低。</p>
+<p><strong>最优策略是两者平衡</strong>：大部分时间去老店，偶尔试试新店。</p>
+</div>
+
+<h3>Thompson Sampling 怎么自动平衡的？</h3>
+<p>关键在于：<strong>方差大的模型有更大的"逆袭"概率</strong>。</p>
+
+<div class="step-box">
+    <div class="step-title">三种模型状态</div>
+<pre>
+状态1️⃣ 老牌好模型（高 α，低 β）
+  Beta(50, 5)  均值=0.91，方差=0.0015
+  采样范围大约在 [0.85, 0.96]
+  → 几乎每次都能采到高值 → 高概率被选中
+  → 这就是"利用"
+
+状态2️⃣ 新模型（α=1, β=1）
+  Beta(1, 1)  均值=0.50，方差=0.083
+  采样范围大约在 [0.05, 0.95]（非常宽！）
+  → 有时采到 0.9+（逆袭成功！）→ 有时被选中
+  → 这就是"探索"
+
+状态3️⃣ 已被验证很差的模型（低 α，高 β）
+  Beta(2, 20)  均值=0.09，方差=0.004
+  采样范围大约在 [0.02, 0.18]
+  → 几乎不可能采到高值 → 几乎不会被选中
+  → 这就是"自动淘汰"
+</pre>
+</div>
+
+<h3>数学上的直觉</h3>
+
+<div class="formula-box">
+    被选中的概率 ≈ P(从自己的分布里采出全场最高值)<br><br>
+    影响因素：<br>
+    1. 均值越高 → 采样中心越高 → 被选概率越大（利用）<br>
+    2. 方差越大 → 采样波动越大 → 偶尔采出极高值的概率越大（探索）<br><br>
+    随着数据积累：<br>
+    - 好模型：α 增大 → 均值升高 + 方差缩小 → 稳定高分 → 持续被利用<br>
+    - 差模型：β 增大 → 均值降低 + 方差缩小 → 稳定低分 → 自动淘汰<br>
+    - 新模型：数据少 → 方差大 → 有"黑马"机会 → 被探索
+</div>
+
+<h3>和其他策略的对比</h3>
+
+<table>
+    <tr><th>策略</th><th>做法</th><th>问题</th></tr>
+    <tr>
+        <td><strong>贪心（Greedy）</strong></td>
+        <td>永远选均值最高的</td>
+        <td>永远不探索新模型，可能错过更好的</td>
+    </tr>
+    <tr>
+        <td><strong>ε-贪心</strong></td>
+        <td>90% 选最好的，10% 随机选</td>
+        <td>随机探索效率低，好模型差模型都可能被随机到</td>
+    </tr>
+    <tr>
+        <td><strong>UCB（置信上界）</strong></td>
+        <td>选"均值 + 不确定性"最高的</td>
+        <td>确定性的，缺乏随机性带来的多样性</td>
+    </tr>
+    <tr>
+        <td><strong>Thompson Sampling</strong></td>
+        <td>从分布中采样，选最高的</td>
+        <td>自动平衡，有数学最优保证 ✓</td>
+    </tr>
+</table>
+
+<div class="example">
+<p><strong>完整时间线演示：</strong></p>
+<pre>
+═══ 第 1 天：3 个模型都是新的 ═══
+  A: Beta(1,1) 均值 0.50  │  B: Beta(1,1) 均值 0.50  │  C: Beta(1,1) 均值 0.50
+  → 纯随机选择（三个骰子一样）
+
+═══ 第 10 天：有了一些反馈 ═══
+  A: Beta(8,3) 均值 0.73  │  B: Beta(4,7) 均值 0.36  │  C: Beta(3,2) 均值 0.60
+  → A 最常被选（利用），B 很少被选，C 偶尔被选（还在探索）
+
+═══ 第 100 天：格局稳定 ═══
+  A: Beta(70,15) 均值 0.82  │  B: Beta(8,50) 均值 0.14  │  C: Beta(40,20) 均值 0.67
+  → A 是主力（稳定利用）
+  → B 基本淘汰（几乎不选）
+  → C 是备选（偶尔被选，补充多样性）
+
+═══ 第 101 天：新模型 D 上线 ═══
+  D: Beta(1,1) 均值 0.50，方差大
+  → D 有一定概率被选中（探索新兵）
+  → 如果 D 表现好，几天内就能追上 C
+  → 如果 D 表现差，几天内就被淘汰
+</pre>
+</div>
+
+<div class="summary-card">
+    <h4>探索 vs 利用 一句话总结</h4>
+    <p>Thompson Sampling 通过方差自动平衡：已验证好的模型方差小、均值高，稳定被选（利用）；新模型方差大，偶尔采出高值（探索）；验证差的模型均值低、方差小，自动淘汰。无需手动调参。</p>
+</div>
+
+<hr>
+
+<!-- ===================== Section 7: Full Flow ===================== -->
+<h2 id="full-flow">七、完整流程串联</h2>
+
+<p>现在把所有概念串在一起，看一个完整的请求处理过程：</p>
+
+<div class="step-box">
+    <div class="step-title">完整流程图</div>
+<pre>
+用户发来一个问题
+        │
+        ▼
+┌─────────────────────────────────────┐
+│  1. 读取每个模型的 Beta 分布状态     │
+│     A: Beta(20, 5)                   │
+│     B: Beta(8, 12)                   │
+│     C: Beta(1, 1)                    │
+└─────────────────────────────────────┘
+        │
+        ▼
+┌─────────────────────────────────────┐
+│  2. Thompson Sampling：掷骰子        │
+│     A: sample = 0.81                 │
+│     B: sample = 0.35                 │
+│     C: sample = 0.72                 │
+└─────────────────────────────────────┘
+        │
+        ▼
+┌─────────────────────────────────────┐
+│  3. 多轮选择 (K=2)：选 Top-2        │
+│     选中 → [A (0.81), C (0.72)]     │
+│     淘汰 → B (0.35)                 │
+└─────────────────────────────────────┘
+        │
+        ▼
+┌─────────────────────────────────────┐
+│  4. 并行调用 A 和 C                  │
+│     A → "回答内容 aaa..."            │
+│     C → "回答内容 ccc..."            │
+└─────────────────────────────────────┘
+        │
+        ▼
+┌─────────────────────────────────────┐
+│  5. 响应聚合：选 score 最高的        │
+│     A 的 score=0.81 > C 的 0.72      │
+│     → 输出 A 的回答                  │
+└─────────────────────────────────────┘
+        │
+        ▼
+┌─────────────────────────────────────┐
+│  6. 等待用户反馈                     │
+│     用户点赞了 → 正反馈              │
+│     weight = 1.0 × 1.0 = 1.0        │
+│                                      │
+│     更新：A: Beta(20+1, 5) = (21,5) │
+│     A 的均值：0.80 → 0.81 ↑         │
+└─────────────────────────────────────┘
+        │
+        ▼
+    等待下一个请求...（循环）
+</pre>
+</div>
+
+<h3>关键洞察</h3>
+
+<div class="step-box">
+    <div class="step-title">为什么这个系统这么优雅？</div>
+    <table>
+        <tr><th>特性</th><th>怎么实现的</th></tr>
+        <tr><td>无需预先知道哪个模型好</td><td>初始 Beta(1,1)，从零学起</td></tr>
+        <tr><td>能自动发现好模型</td><td>Thompson Sampling 的探索机制</td></tr>
+        <tr><td>能自动淘汰差模型</td><td>差模型均值低 + 方差小 → 选不到</td></tr>
+        <tr><td>新模型上线无需手动配置</td><td>给个 Beta(1,1) 就行，系统自动探索</td></tr>
+        <tr><td>不需要调超参数</td><td>Thompson Sampling 自动平衡探索/利用</td></tr>
+        <tr><td>支持不同用户的个性化</td><td>每个用户维护独立的 Beta 分布</td></tr>
+    </table>
+</div>
+
+<hr>
+
+<h2>附录：一张图看懂四个概念的关系</h2>
+
+<div class="visual">
+┌──────────────────────────────────────────────────────────────────┐
+│                                                                  │
+│   Beta 分布                Thompson Sampling                     │
+│   ─────────                ─────────────────                     │
+│   "我对模型的信念"    ───→  "根据信念掷骰子选模型"                │
+│   (α=好评, β=差评)         (方差大=探索, 均值高=利用)            │
+│                                    │                             │
+│                                    ▼                             │
+│                            多轮选择 (Top-K)                      │
+│                            ─────────────────                     │
+│                            "选 K 个分数最高的"                    │
+│                                    │                             │
+│                                    ▼                             │
+│                            响应聚合                              │
+│                            ────────                              │
+│                            "用分数最高的那个回答"                  │
+│                                    │                             │
+│                                    ▼                             │
+│                            反馈更新                              │
+│                            ────────                              │
+│                            "好评加 α，差评加 β"                   │
+│                                    │                             │
+│                                    ▼                             │
+│                            更新 Beta 分布                         │
+│                            (循环回到顶部)                         │
+│                                                                  │
+└──────────────────────────────────────────────────────────────────┘
+</div>
+
+<p style="text-align: center; color: #8b949e; margin-top: 40px; font-size: 0.85em;">
+    — 基于 Router-R1 论文 (arXiv:2506.09033) · 零基础解读版 —
+</p>
+
+</body>
+</html>

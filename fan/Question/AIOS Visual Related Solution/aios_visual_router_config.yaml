@@ -1,0 +1,1404 @@
+# AIOS Visual Router Configuration
+# Maps: signals → scene classification → decision rules → resource activation
+
+version: v0.1
+
+# =============================================================================
+# Camera Streams Configuration 
+# =============================================================================
+camera_streams:
+  - name: "FWC"
+    type: "front_wide"
+    resolution: "1080p"
+    max_fps: 30
+    low_power_fps: 10
+    power_cost: 3  # relative power units
+    description: "Front Wide Camera - primary forward view"
+
+  - name: "FTC"
+    type: "front_tele"
+    resolution: "1080p"
+    max_fps: 30
+    power_cost: 3
+    description: "Front Tele Camera - long-range text/sign recognition"
+
+  - name: "MPIC"
+    type: "in_cabin"
+    resolution: "720p"
+    max_fps: 30
+    low_power_fps: 10
+    power_cost: 2
+    description: "Multi-Purpose In-Cabin Camera (DMS/OMS)"
+
+  - name: "SCF_L"
+    type: "side_front"
+    resolution: "720p"
+    max_fps: 30
+    low_power_fps: 10
+    power_cost: 2
+    description: "Side Camera Front Left"
+
+  - name: "SCF_R"
+    type: "side_front"
+    resolution: "720p"
+    max_fps: 30
+    low_power_fps: 10
+    power_cost: 2
+    description: "Side Camera Front Right"
+
+  - name: "SCR_L"
+    type: "side_rear"
+    resolution: "720p"
+    max_fps: 30
+    low_power_fps: 10
+    power_cost: 2
+    description: "Side Camera Rear Left"
+
+  - name: "SCR_R"
+    type: "side_rear"
+    resolution: "720p"
+    max_fps: 30
+    low_power_fps: 10
+    power_cost: 2
+    description: "Side Camera Rear Right"
+
+  - name: "SVC_F"
+    type: "surround_view"
+    resolution: "480p"
+    max_fps: 10
+    low_power_fps: 5
+    power_cost: 1
+    description: "Surround View Camera Front"
+
+  - name: "SVC_R"
+    type: "surround_view"
+    resolution: "480p"
+    max_fps: 10
+    low_power_fps: 5
+    power_cost: 1
+    description: "Surround View Camera Rear"
+
+  - name: "SVC_L"
+    type: "surround_view"
+    resolution: "480p"
+    max_fps: 10
+    low_power_fps: 5
+    power_cost: 1
+    description: "Surround View Camera Left"
+
+  - name: "SVC_R2"
+    type: "surround_view"
+    resolution: "480p"
+    max_fps: 10
+    low_power_fps: 5
+    power_cost: 1
+    description: "Surround View Camera Right"
+
+  - name: "RVC"
+    type: "rear_view"
+    resolution: "720p"
+    max_fps: 30
+    power_cost: 2
+    description: "Rear View Camera"
+
+# =============================================================================
+# Model Registry 
+# =============================================================================
+models:
+  # --- CV Small Models ---
+  cv_models:
+    - name: "cv_gesture_recognition"
+      type: "cv"
+      input_source: ["MPIC"]
+      latency_ms: 15
+      status: "exists"
+      description: "In-cabin gesture recognition"
+
+    - name: "cv_child_detection"
+      type: "cv"
+      input_source: ["MPIC"]
+      latency_ms: 10
+      status: "exists"
+      description: "Child detection in cabin"
+
+    - name: "cv_fatigue_detection"
+      type: "cv"
+      input_source: ["MPIC"]
+      latency_ms: 12
+      status: "exists"
+      description: "Driver fatigue/sleep detection"
+
+    - name: "cv_person_detection_svc"
+      type: "cv"
+      input_source: ["SVC_F", "SVC_R", "SVC_L", "SVC_R2"]
+      latency_ms: 8
+      status: "tbd"
+      description: "Person detection on surround view (low-power trigger)"
+
+    - name: "cv_face_id"
+      type: "cv"
+      input_source: ["SCR_L", "SCR_R", "SCF_L", "SCF_R"]
+      latency_ms: 20
+      status: "tbd"
+      description: "Face identification for user recognition"
+
+    - name: "cv_pedestrian_gesture"
+      type: "cv"
+      input_source: ["FWC", "SCF_L", "SCF_R"]
+      latency_ms: 15
+      status: "tbd"
+      description: "Pedestrian gesture recognition"
+
+    - name: "cv_traffic_police_gesture"
+      type: "cv"
+      input_source: ["FWC", "SCF_L", "SCF_R"]
+      latency_ms: 15
+      status: "tbd"
+      description: "Traffic police gesture recognition"
+
+    - name: "cv_road_sign"
+      type: "cv"
+      input_source: ["FWC", "FTC"]
+      latency_ms: 12
+      status: "tbd"
+      description: "Road sign detection and classification"
+
+    - name: "cv_road_marking"
+      type: "cv"
+      input_source: ["FWC"]
+      latency_ms: 10
+      status: "tbd"
+      description: "Road marking detection"
+
+    - name: "cv_special_lane"
+      type: "cv"
+      input_source: ["FWC"]
+      latency_ms: 10
+      status: "tbd"
+      description: "Special lane detection (bus/tidal/ETC)"
+
+    - name: "cv_zone_area"
+      type: "cv"
+      input_source: ["FWC"]
+      latency_ms: 10
+      status: "tbd"
+      description: "Zone/area detection (school/crosswalk/accident)"
+
+    - name: "cv_parking_spot"
+      type: "cv"
+      input_source: ["FWC", "SVC_F"]
+      latency_ms: 12
+      status: "tbd"
+      description: "Parking spot detection (empty/occupied/private/monthly)"
+
+    - name: "cv_fire_lane"
+      type: "cv"
+      input_source: ["FWC", "SCF_L", "SCF_R"]
+      latency_ms: 10
+      status: "tbd"
+      description: "Fire lane detection"
+
+    - name: "cv_charging_spot"
+      type: "cv"
+      input_source: ["FWC", "SVC_F"]
+      latency_ms: 10
+      status: "tbd"
+      description: "Charging-only spot detection"
+
+    - name: "cv_obstacle_detection"
+      type: "cv"
+      input_source: ["FWC", "SVC_F", "SVC_R"]
+      latency_ms: 12
+      status: "tbd"
+      description: "Object detection (charging pile/elevator/pillar/obstacle)"
+
+    - name: "cv_parking_gesture"
+      type: "cv"
+      input_source: ["FWC", "SVC_F", "SVC_R", "SCF_L", "SCF_R", "RVC"]
+      latency_ms: 15
+      status: "tbd"
+      description: "Gesture recognition for parking guidance"
+
+    - name: "cv_bsv_obstacle"
+      type: "cv"
+      input_source: ["SCR_L", "SCR_R"]
+      latency_ms: 12
+      status: "tbd"
+      description: "Blind spot obstacle detection (bicycle/scooter/car/pedestrian)"
+
+    - name: "cv_human_detection"
+      type: "cv"
+      input_source: ["SVC_F", "SVC_R", "SVC_L", "SVC_R2"]
+      latency_ms: 8
+      status: "tbd"
+      description: "Human detection for sentry mode"
+
+    - name: "cv_motion_detection"
+      type: "cv"
+      input_source: ["SVC_F", "SVC_R", "SVC_L", "SVC_R2"]
+      latency_ms: 6
+      status: "tbd"
+      description: "Motion detection for sentry mode"
+
+    - name: "cv_event_classification"
+      type: "cv"
+      input_source: ["SVC_F", "SVC_R", "SVC_L", "SVC_R2", "SCF_L", "SCF_R"]
+      latency_ms: 15
+      status: "tbd"
+      description: "Event classification (pass-by/loiter/touch/break-in)"
+
+  # --- OCR Model ---
+  ocr_models:
+    - name: "ocr_parking"
+      type: "ocr"
+      input_source: ["FWC", "SCF_L", "SCF_R"]
+      latency_ms: 30
+      status: "tbd"
+      description: "OCR for floor numbers and directional signs"
+
+  # --- ViT Backbone + Classification Heads ---
+  vit_backbones:
+    - name: "backbone_a"
+      type: "vit"
+      variant: "ViT-Small"
+      input_source: ["MPIC"]
+      feature_dim: 768
+      latency_ms: 25
+      description: "In-cabin optimized backbone"
+      heads:
+        - name: "head_a1_gesture"
+          classes: ["fist", "wave", "ok", "point", "palm"]
+          num_classes: 5
+          latency_ms: 0.1
+        - name: "head_a2_person_type"
+          classes: ["child", "adult", "elderly", "disabled"]
+          num_classes: 4
+          latency_ms: 0.1
+        - name: "head_a3_behavior"
+          classes: ["normal", "sleeping", "eating", "makeup", "phone", "dangerous"]
+          num_classes: 6
+          latency_ms: 0.1
+        - name: "head_a4_fatigue"
+          classes: ["alert", "mild_fatigue", "severe_fatigue"]
+          num_classes: 3
+          latency_ms: 0.1
+
+    - name: "backbone_b"
+      type: "vit"
+      variant: "ViT-Small"
+      input_source: ["FWC", "SCF_L", "SCF_R", "FTC"]
+      feature_dim: 768
+      latency_ms: 30
+      description: "Out-cabin optimized backbone"
+      heads:
+        - name: "head_b1_weather"
+          classes: ["sunny", "cloudy", "rainy", "snowy", "foggy"]
+          num_classes: 5
+          latency_ms: 0.1
+        - name: "head_b2_lighting"
+          classes: ["daytime", "dusk", "night", "tunnel", "backlit"]
+          num_classes: 5
+          latency_ms: 0.1
+        - name: "head_b3_special_vehicle"
+          classes: ["none", "police", "ambulance", "fire_truck"]
+          num_classes: 4
+          latency_ms: 0.1
+        - name: "head_b4_scene_type"
+          classes: ["urban", "highway", "rural", "mountain", "tunnel", "parking_lot"]
+          num_classes: 6
+          latency_ms: 0.1
+        - name: "head_b5_scenery"
+          classes: ["grassland", "ocean", "sunrise", "forest", "landmark", "ordinary"]
+          num_classes: 6
+          latency_ms: 0.1
+
+    - name: "backbone_c"
+      type: "vit"
+      variant: "ViT-Tiny"
+      input_source: ["SVC_F", "SVC_R", "SVC_L", "SVC_R2"]
+      feature_dim: 512
+      latency_ms: 15
+      description: "Surround view low-resolution backbone (optional)"
+      heads:
+        - name: "head_c1_person_presence"
+          classes: ["no_person", "person_present"]
+          num_classes: 2
+          latency_ms: 0.1
+        - name: "head_c2_spot_status"
+          classes: ["empty", "occupied", "half_occupied"]
+          num_classes: 3
+          latency_ms: 0.1
+        - name: "head_c3_event_type"
+          classes: ["passing", "loitering", "touching", "breaking"]
+          num_classes: 4
+          latency_ms: 0.1
+
+  # --- (VLM models removed: unified into ViT pipeline) ---
+
+# =============================================================================
+# Scenes (analogous to categories)
+# =============================================================================
+scenes:
+  - name: "driving"
+    description: "Vehicle in motion on roads"
+    detection_rules:
+      operator: "AND"
+      conditions:
+        - type: "vehicle"
+          signal: "gear"
+          value: "D"
+        - type: "vehicle"
+          signal: "speed"
+          operator: ">"
+          value: 5
+
+  - name: "parking"
+    description: "Vehicle in parking/reverse mode"
+    detection_rules:
+      operator: "OR"
+      conditions:
+        - type: "vehicle"
+          signal: "gear"
+          value: "R"
+        - operator: "AND"
+          conditions:
+            - type: "vehicle"
+              signal: "speed"
+              operator: "<"
+              value: 5
+            - type: "cv"
+              signal: "parking_area_detected"
+              confidence_threshold: 0.7
+
+  - name: "drop_off"
+    description: "Passenger exiting vehicle"
+    detection_rules:
+      operator: "OR"
+      conditions:
+        - type: "vehicle"
+          signal: "door_opening"
+          value: true
+        - operator: "AND"
+          conditions:
+            - type: "vehicle"
+              signal: "gear"
+              value: "P"
+            - type: "vehicle"
+              signal: "door_unlock"
+              value: true
+
+  - name: "sentry_mode"
+    description: "Vehicle parked and monitoring"
+    detection_rules:
+      operator: "AND"
+      conditions:
+        - type: "vehicle"
+          signal: "gear"
+          value: "P"
+        - type: "vehicle"
+          signal: "engine"
+          value: "off"
+        - type: "system"
+          signal: "sentry_enabled"
+          value: true
+
+  - name: "in_cabin"
+    description: "In-cabin monitoring (always active when occupied)"
+    detection_rules:
+      operator: "AND"
+      conditions:
+        - type: "system"
+          signal: "dms_active"
+          value: true
+
+  - name: "out_cabin"
+    description: "Out-cabin person interaction (parked)"
+    detection_rules:
+      operator: "AND"
+      conditions:
+        - type: "vehicle"
+          signal: "gear"
+          value: "P"
+        - type: "cv"
+          signal: "person_detected_svc"
+          confidence_threshold: 0.7
+
+# =============================================================================
+# Power Profiles (analogous to reasoning_families effort levels)
+# =============================================================================
+power_profiles:
+  - name: "sleep"
+    description: "Minimum power - sentry monitoring only"
+    max_streams: 4
+    max_npu_load_percent: 10
+    allowed_cameras: ["SVC_F", "SVC_R", "SVC_L", "SVC_R2"]
+    allowed_model_types: ["cv"]
+    total_power_budget: 4  # relative units
+    escalation_to: "low"
+    escalation_triggers:
+      - signal: "person_detected_svc"
+        confidence_threshold: 0.7
+      - signal: "motion_detected_svc"
+        confidence_threshold: 0.8
+
+  - name: "low"
+    description: "Low power - basic monitoring"
+    max_streams: 6
+    max_npu_load_percent: 30
+    allowed_cameras: ["SVC_F", "SVC_R", "SVC_L", "SVC_R2", "MPIC", "SCF_L", "SCF_R"]
+    allowed_model_types: ["cv", "vit"]
+    total_power_budget: 10
+    escalation_to: "normal"
+    escalation_triggers:
+      - signal: "gear_d"
+      - signal: "speed_above_5"
+    deescalation_to: "sleep"
+    deescalation_conditions:
+      - signal: "engine_off"
+        duration_s: 60
+
+  - name: "normal"
+    description: "Normal driving mode"
+    max_streams: 10
+    max_npu_load_percent: 70
+    allowed_cameras: ["FWC", "FTC", "MPIC", "SCF_L", "SCF_R", "SCR_L", "SCR_R", "SVC_F", "SVC_R", "SVC_L", "SVC_R2"]
+    allowed_model_types: ["cv", "vit", "ocr"]
+    total_power_budget: 20
+    escalation_to: "high"
+    escalation_triggers:
+      - signal: "adas_active"
+      - signal: "user_query_active"
+    deescalation_to: "low"
+    deescalation_conditions:
+      - signal: "gear_p"
+        duration_s: 30
+
+  - name: "high"
+    description: "Full power - ADAS active or user query"
+    max_streams: 13
+    max_npu_load_percent: 95
+    allowed_cameras: ["FWC", "FTC", "MPIC", "SCF_L", "SCF_R", "SCR_L", "SCR_R", "SVC_F", "SVC_R", "SVC_L", "SVC_R2", "RVC"]
+    allowed_model_types: ["cv", "vit", "ocr"]
+    total_power_budget: 30
+    deescalation_to: "normal"
+    deescalation_conditions:
+      - signal: "no_adas_event"
+        duration_s: 5
+      - signal: "no_user_query"
+        duration_s: 5
+
+# =============================================================================
+# Decisions (analogous to semantic router decisions)
+# Strategy: priority_power_aware
+# =============================================================================
+strategy: "priority_power_aware"
+
+decisions:
+  # ---------------------------------------------------------------------------
+  # Tier 1: Safety Critical (Priority 9-10)
+  # ---------------------------------------------------------------------------
+  - name: "uc17_adas_cabin_perception"
+    description: "ADAS in-cabin passenger state perception (takeover decision)"
+    priority: 100
+    tier: "safety"
+    rules:
+      operator: "AND"
+      conditions:
+        - type: "scene"
+          name: "in_cabin"
+        - type: "scene"
+          name: "driving"
+    stream_refs:
+      - camera: "MPIC"
+        fps: 10
+        required: true
+    model_pipeline:
+      type: "cv_vit_parallel"
+      stages:
+        - name: "cv_stage"
+          models: ["cv_child_detection", "cv_fatigue_detection"]
+        - name: "vit_stage"
+          backbone: "backbone_a"
+          heads: ["head_a2_person_type", "head_a3_behavior", "head_a4_fatigue"]
+      fusion:
+        strategy: "parallel_merge"
+        description: "CV and ViT run in parallel, merge results for highest confidence"
+    multi_stream:
+      strategy: "single"
+      primary: "MPIC"
+    scheduling:
+      frequency_hz: 10
+      max_latency_ms: 100
+      preemptible: false
+    power_config:
+      min_power_mode: "normal"
+      degradation:
+        reduce_fps_to: 5
+        drop_secondary_streams: false
+
+  - name: "uc11_adas_gesture_recognition"
+    description: "ADAS external gesture recognition (traffic police, pedestrian)"
+    priority: 100
+    tier: "safety"
+    rules:
+      operator: "AND"
+      conditions:
+        - type: "scene"
+          name: "driving"
+        - type: "system"
+          signal: "adas_active"
+          value: true
+    stream_refs:
+      - camera: "FWC"
+        fps: 10
+        required: true
+      - camera: "SCF_L"
+        fps: 10
+        required: true
+      - camera: "SCF_R"
+        fps: 10
+        required: true
+    model_pipeline:
+      type: "cv_vit_parallel"
+      stages:
+        - name: "cv_stage"
+          models: ["cv_pedestrian_gesture", "cv_traffic_police_gesture"]
+        - name: "vit_stage"
+          backbone: "backbone_b"
+          heads: ["head_b3_special_vehicle"]  # reuse backbone for multi-task
+      fusion:
+        strategy: "confidence_gate"
+        cv_threshold: 0.8
+        fallback: "vit_stage"
+    multi_stream:
+      strategy: "sync_late_fusion"
+      primary: "FWC"
+      weights:
+        FWC: 0.5
+        SCF_L: 0.25
+        SCF_R: 0.25
+    scheduling:
+      frequency_hz: 10
+      max_latency_ms: 100
+      preemptible: false
+    power_config:
+      min_power_mode: "normal"
+      degradation:
+        reduce_fps_to: 5
+        drop_secondary_streams: true
+
+  - name: "uc13_adas_static_targets"
+    description: "ADAS static target perception (road signs, markings, lanes, zones)"
+    priority: 95
+    tier: "safety"
+    rules:
+      operator: "AND"
+      conditions:
+        - type: "scene"
+          name: "driving"
+        - type: "system"
+          signal: "adas_active"
+          value: true
+    stream_refs:
+      - camera: "FWC"
+        fps: 10
+        required: true
+      - camera: "FTC"
+        fps: 5
+        required: true
+      - camera: "SCF_L"
+        fps: 5
+        required: false
+      - camera: "SCF_R"
+        fps: 5
+        required: false
+    model_pipeline:
+      type: "cv_vit_parallel"
+      stages:
+        - name: "cv_stage"
+          models: ["cv_road_sign", "cv_road_marking", "cv_special_lane", "cv_zone_area"]
+        - name: "vit_stage"
+          backbone: "backbone_b"
+          heads: ["head_b4_scene_type"]
+      fusion:
+        strategy: "confidence_gate"
+        cv_threshold: 0.85
+        fallback: "vit_stage"
+    multi_stream:
+      strategy: "primary_secondary"
+      primary: "FWC"
+      secondary: "FTC"
+      secondary_purpose: "long_range_text_recognition"
+      primary_confidence_threshold: 0.7
+    scheduling:
+      frequency_hz: 10
+      max_latency_ms: 100
+      preemptible: false
+    power_config:
+      min_power_mode: "normal"
+      degradation:
+        reduce_fps_to: 5
+        drop_secondary_streams: true
+
+  - name: "uc2_blind_spot_view"
+    description: "Blind spot view for turning and door opening safety"
+    priority: 90
+    tier: "safety"
+    rules:
+      operator: "OR"
+      conditions:
+        - operator: "AND"
+          conditions:
+            - type: "scene"
+              name: "driving"
+            - type: "vehicle"
+              signal: "turn_signal"
+              value: true
+        - operator: "AND"
+          conditions:
+            - type: "scene"
+              name: "drop_off"
+            - type: "vehicle"
+              signal: "door_opening"
+              value: true
+    stream_refs:
+      - camera: "SCR_L"
+        fps: 15
+        required: true
+      - camera: "SCR_R"
+        fps: 15
+        required: true
+    model_pipeline:
+      type: "cv_then_vit"
+      stages:
+        - name: "cv_stage"
+          models: ["cv_bsv_obstacle"]
+        - name: "vit_fallback"
+          backbone: "backbone_b"
+          heads: ["head_b3_special_vehicle"]
+          trigger: "cv_confidence < 0.7"
+      fusion:
+        strategy: "cascade"
+        cv_threshold: 0.7
+        description: "CV handles common cases; ViT only for ambiguous situations"
+    multi_stream:
+      strategy: "sync_late_fusion"
+      primary: "SCR_L"
+      weights:
+        SCR_L: 0.5
+        SCR_R: 0.5
+    scheduling:
+      frequency_hz: 15
+      max_latency_ms: 67
+      preemptible: false
+    power_config:
+      min_power_mode: "normal"
+      degradation:
+        reduce_fps_to: 10
+        drop_secondary_streams: false
+
+  # ---------------------------------------------------------------------------
+  # Tier 2: Core Experience (Priority 7-8)
+  # ---------------------------------------------------------------------------
+  - name: "uc12_special_vehicle_recognition"
+    description: "Special vehicle recognition (police, ambulance, fire truck)"
+    priority: 80
+    tier: "core"
+    rules:
+      operator: "AND"
+      conditions:
+        - type: "scene"
+          name: "driving"
+    stream_refs:
+      - camera: "FWC"
+        fps: 5
+        required: true
+      - camera: "SCF_L"
+        fps: 5
+        required: true
+      - camera: "SCF_R"
+        fps: 5
+        required: true
+      - camera: "SCR_L"
+        fps: 2
+        required: false
+      - camera: "SCR_R"
+        fps: 2
+        required: false
+    model_pipeline:
+      type: "only_vit"
+      stages:
+        - name: "vit_stage"
+          backbone: "backbone_b"
+          heads: ["head_b3_special_vehicle"]
+      fusion:
+        strategy: "none"
+    multi_stream:
+      strategy: "sync_late_fusion"
+      primary: "FWC"
+      weights:
+        FWC: 0.4
+        SCF_L: 0.2
+        SCF_R: 0.2
+        SCR_L: 0.1
+        SCR_R: 0.1
+    scheduling:
+      frequency_hz: 5
+      max_latency_ms: 200
+      preemptible: true
+    power_config:
+      min_power_mode: "normal"
+      degradation:
+        reduce_fps_to: 2
+        drop_secondary_streams: true
+
+  - name: "uc14_parking_restriction"
+    description: "Parking restriction understanding (private/fire lane/charging)"
+    priority: 80
+    tier: "core"
+    rules:
+      operator: "AND"
+      conditions:
+        - type: "scene"
+          name: "parking"
+    stream_refs:
+      - camera: "FWC"
+        fps: 5
+        required: true
+      - camera: "SVC_F"
+        fps: 5
+        required: true
+      - camera: "SCF_L"
+        fps: 5
+        required: true
+      - camera: "SCF_R"
+        fps: 5
+        required: true
+    model_pipeline:
+      type: "cv_vit_parallel"
+      stages:
+        - name: "cv_stage"
+          models: ["cv_parking_spot", "cv_fire_lane", "cv_charging_spot"]
+        - name: "vit_stage"
+          backbone: "backbone_b"
+          heads: ["head_b4_scene_type"]
+        - name: "vit_fallback"
+          backbone: "backbone_c"
+          heads: ["head_c2_spot_status"]
+          trigger: "cv_confidence < 0.8"
+          description: "ViT fallback for complex parking scenarios"
+      fusion:
+        strategy: "cascade"
+        cv_threshold: 0.8
+    multi_stream:
+      strategy: "sync_late_fusion"
+      primary: "FWC"
+      weights:
+        FWC: 0.35
+        SVC_F: 0.3
+        SCF_L: 0.175
+        SCF_R: 0.175
+    scheduling:
+      frequency_hz: 5
+      max_latency_ms: 200
+      preemptible: true
+    power_config:
+      min_power_mode: "normal"
+      degradation:
+        reduce_fps_to: 2
+        drop_secondary_streams: true
+
+  - name: "uc10_environment_perception"
+    description: "External environment perception (weather, lighting, scene)"
+    priority: 80
+    tier: "core"
+    rules:
+      operator: "AND"
+      conditions:
+        - type: "scene"
+          name: "driving"
+    stream_refs:
+      - camera: "FWC"
+        fps: 2
+        required: true
+      - camera: "SCF_L"
+        fps: 0.5
+        required: false
+      - camera: "SCF_R"
+        fps: 0.5
+        required: false
+    model_pipeline:
+      type: "only_vit"
+      stages:
+        - name: "vit_stage"
+          backbone: "backbone_b"
+          heads: ["head_b1_weather", "head_b2_lighting", "head_b4_scene_type"]
+      fusion:
+        strategy: "none"
+    multi_stream:
+      strategy: "primary_secondary"
+      primary: "FWC"
+      secondary: "SCF_L"
+      primary_confidence_threshold: 0.6
+      description: "FWC sufficient for weather/lighting; SCF only for edge cases (shadow/backlit)"
+    scheduling:
+      frequency_hz: 2
+      max_latency_ms: 500
+      preemptible: true
+    power_config:
+      min_power_mode: "normal"
+      degradation:
+        reduce_fps_to: 1
+        drop_secondary_streams: true
+
+  - name: "uc5_passenger_behavior"
+    description: "In-cabin passenger feature and behavior recognition"
+    priority: 75
+    tier: "core"
+    rules:
+      operator: "AND"
+      conditions:
+        - type: "scene"
+          name: "in_cabin"
+    stream_refs:
+      - camera: "MPIC"
+        fps: 5
+        required: true
+    model_pipeline:
+      type: "cv_vit_parallel"
+      stages:
+        - name: "cv_stage"
+          models: ["cv_child_detection", "cv_fatigue_detection"]
+        - name: "vit_stage"
+          backbone: "backbone_a"
+          heads: ["head_a2_person_type", "head_a3_behavior"]
+        - name: "vit_extended"
+          backbone: "backbone_a"
+          heads: ["head_a2_person_type", "head_a3_behavior"]
+          trigger: "cv_confidence < 0.6 AND vit_confidence < 0.6"
+          description: "Extended ViT inference with augmented input for edge cases"
+      fusion:
+        strategy: "parallel_merge"
+    multi_stream:
+      strategy: "single"
+      primary: "MPIC"
+    scheduling:
+      frequency_hz: 5
+      max_latency_ms: 200
+      preemptible: true
+    power_config:
+      min_power_mode: "low"
+      degradation:
+        reduce_fps_to: 2
+
+  - name: "uc15_driving_user_command"
+    description: "ADAS driving scene user command recognition (voice-triggered)"
+    priority: 75
+    tier: "core"
+    rules:
+      operator: "AND"
+      conditions:
+        - type: "scene"
+          name: "driving"
+        - type: "system"
+          signal: "user_query_active"
+          value: true
+    stream_refs:
+      - camera: "FWC"
+        fps: 1
+        required: true
+      - camera: "SCR_L"
+        fps: 1
+        required: true
+      - camera: "SCR_R"
+        fps: 1
+        required: true
+      - camera: "SCF_L"
+        fps: 1
+        required: true
+      - camera: "SCF_R"
+        fps: 1
+        required: true
+    model_pipeline:
+      type: "only_vit"
+      stages:
+        - name: "vit_stage"
+          backbone: "backbone_b"
+          heads: ["head_b4_scene_type", "head_b3_special_vehicle"]
+          description: "Generalized object parsing via ViT multi-head"
+      fusion:
+        strategy: "none"
+    multi_stream:
+      strategy: "sync_late_fusion"
+      primary: "FWC"
+      weights:
+        FWC: 0.4
+        SCF_L: 0.15
+        SCF_R: 0.15
+        SCR_L: 0.15
+        SCR_R: 0.15
+    scheduling:
+      frequency_hz: 1
+      max_latency_ms: 500
+      preemptible: true
+    power_config:
+      min_power_mode: "normal"
+      degradation:
+        reduce_streams: true
+        keep_only: ["FWC"]
+
+  - name: "uc16_parking_user_command"
+    description: "ADAS parking user command recognition (voice/gesture parking)"
+    priority: 75
+    tier: "core"
+    rules:
+      operator: "AND"
+      conditions:
+        - type: "scene"
+          name: "parking"
+        - type: "system"
+          signal: "user_query_active"
+          value: true
+    stream_refs:
+      - camera: "FWC"
+        fps: 2
+        required: true
+      - camera: "SCF_L"
+        fps: 2
+        required: true
+      - camera: "SCF_R"
+        fps: 2
+        required: true
+      - camera: "SCR_L"
+        fps: 2
+        required: true
+      - camera: "SCR_R"
+        fps: 2
+        required: true
+      - camera: "SVC_F"
+        fps: 2
+        required: true
+      - camera: "SVC_R"
+        fps: 2
+        required: true
+      - camera: "SVC_L"
+        fps: 2
+        required: true
+      - camera: "SVC_R2"
+        fps: 2
+        required: true
+      - camera: "RVC"
+        fps: 2
+        required: true
+    model_pipeline:
+      type: "cv_ocr_vit"
+      stages:
+        - name: "cv_stage"
+          models: ["cv_parking_spot", "cv_obstacle_detection", "cv_parking_gesture"]
+        - name: "ocr_stage"
+          models: ["ocr_parking"]
+          description: "Read floor numbers and directional signs"
+        - name: "vit_fallback"
+          backbone: "backbone_c"
+          heads: ["head_c2_spot_status"]
+          trigger: "cv_and_ocr_insufficient"
+      fusion:
+        strategy: "cascade"
+        cv_threshold: 0.8
+    multi_stream:
+      strategy: "sync_late_fusion"
+      primary: "FWC"
+      weights:
+        FWC: 0.2
+        SCF_L: 0.1
+        SCF_R: 0.1
+        SCR_L: 0.1
+        SCR_R: 0.1
+        SVC_F: 0.1
+        SVC_R: 0.1
+        SVC_L: 0.05
+        SVC_R2: 0.05
+        RVC: 0.1
+    scheduling:
+      frequency_hz: 2
+      max_latency_ms: 500
+      preemptible: true
+    power_config:
+      min_power_mode: "normal"
+      degradation:
+        reduce_fps_to: 1
+        drop_secondary_streams: true
+
+  - name: "uc9_sentry_mode"
+    description: "24/7 parking surveillance with escalation"
+    priority: 70
+    tier: "core"
+    rules:
+      operator: "AND"
+      conditions:
+        - type: "scene"
+          name: "sentry_mode"
+    stream_refs:
+      - camera: "SVC_F"
+        fps: 5
+        required: true
+      - camera: "SVC_R"
+        fps: 5
+        required: true
+      - camera: "SVC_L"
+        fps: 5
+        required: true
+      - camera: "SVC_R2"
+        fps: 5
+        required: true
+      - camera: "SCF_L"
+        fps: 0
+        required: false
+        activate_on: "escalation"
+      - camera: "SCF_R"
+        fps: 0
+        required: false
+        activate_on: "escalation"
+      - camera: "SCR_L"
+        fps: 0
+        required: false
+        activate_on: "escalation"
+      - camera: "SCR_R"
+        fps: 0
+        required: false
+        activate_on: "escalation"
+    model_pipeline:
+      type: "only_cv"
+      stages:
+        - name: "cv_always_on"
+          models: ["cv_human_detection", "cv_motion_detection"]
+          description: "Low-power always-on detection"
+        - name: "cv_escalation"
+          models: ["cv_event_classification", "cv_face_id"]
+          trigger: "human_detected OR motion_detected"
+          description: "Activated on trigger for detailed classification"
+      fusion:
+        strategy: "cascade"
+    multi_stream:
+      strategy: "trigger_escalation"
+      always_on: ["SVC_F", "SVC_R", "SVC_L", "SVC_R2"]
+      escalation_streams: ["SCF_L", "SCF_R", "SCR_L", "SCR_R"]
+      escalation_trigger: "person_detected OR motion_sustained_5s"
+      escalation_fps: 30
+    scheduling:
+      frequency_hz: 5
+      max_latency_ms: 200
+      preemptible: true
+    power_config:
+      min_power_mode: "sleep"
+      escalation_power_mode: "low"
+      degradation:
+        reduce_fps_to: 2
+
+  # ---------------------------------------------------------------------------
+  # Tier 3: Enhancement (Priority 4-6)
+  # ---------------------------------------------------------------------------
+  - name: "uc7_user_identity"
+    description: "External user identity recognition (approaching vehicle)"
+    priority: 60
+    tier: "enhancement"
+    rules:
+      operator: "AND"
+      conditions:
+        - type: "scene"
+          name: "out_cabin"
+        - type: "cv"
+          signal: "person_detected_svc"
+          confidence_threshold: 0.7
+    stream_refs:
+      - camera: "SVC_F"
+        fps: 5
+        required: true
+      - camera: "SVC_R"
+        fps: 5
+        required: true
+      - camera: "SVC_L"
+        fps: 5
+        required: true
+      - camera: "SVC_R2"
+        fps: 5
+        required: true
+      - camera: "SCF_L"
+        fps: 0
+        required: false
+        activate_on: "person_detected"
+      - camera: "SCF_R"
+        fps: 0
+        required: false
+        activate_on: "person_detected"
+      - camera: "SCR_L"
+        fps: 0
+        required: false
+        activate_on: "person_detected"
+      - camera: "SCR_R"
+        fps: 0
+        required: false
+        activate_on: "person_detected"
+    model_pipeline:
+      type: "cv_cascade"
+      stages:
+        - name: "cv_trigger"
+          models: ["cv_person_detection_svc"]
+          description: "Low-power person detection on SVC (always running)"
+        - name: "cv_identify"
+          models: ["cv_face_id"]
+          trigger: "person_detected with confidence > 0.7"
+          description: "Wake SC cameras and run FaceId"
+      fusion:
+        strategy: "cascade"
+    multi_stream:
+      strategy: "trigger_escalation"
+      always_on: ["SVC_F", "SVC_R", "SVC_L", "SVC_R2"]
+      escalation_streams: ["SCF_L", "SCF_R", "SCR_L", "SCR_R"]
+      escalation_trigger: "person_detected"
+      escalation_fps: 10
+    scheduling:
+      frequency_hz: 1
+      max_latency_ms: 2000
+      preemptible: true
+    power_config:
+      min_power_mode: "low"
+      degradation:
+        disable_entirely: true
+        reason: "non-safety, can be deferred"
+
+  - name: "uc6_parking_assistant"
+    description: "Parking assistant (gate recognition, QR code)"
+    priority: 55
+    tier: "enhancement"
+    rules:
+      operator: "AND"
+      conditions:
+        - type: "scene"
+          name: "parking"
+        - operator: "NOT"
+          conditions:
+            - type: "system"
+              signal: "user_query_active"
+              value: true
+    stream_refs:
+      - camera: "FWC"
+        fps: 1
+        required: true
+      - camera: "SCF_L"
+        fps: 1
+        required: false
+      - camera: "SCF_R"
+        fps: 1
+        required: false
+    model_pipeline:
+      type: "only_vit"
+      stages:
+        - name: "vit_stage"
+          backbone: "backbone_b"
+          heads: ["head_b4_scene_type"]
+          description: "Gate/toll booth recognition via ViT scene classification"
+      fusion:
+        strategy: "none"
+    multi_stream:
+      strategy: "primary_secondary"
+      primary: "FWC"
+    scheduling:
+      frequency_hz: 1
+      max_latency_ms: 2000
+      preemptible: true
+    power_config:
+      min_power_mode: "normal"
+      degradation:
+        disable_entirely: true
+
+  - name: "uc8_scenery_recognition"
+    description: "AI scenery recognition (landmarks, nature, sunset)"
+    priority: 40
+    tier: "enhancement"
+    rules:
+      operator: "AND"
+      conditions:
+        - type: "scene"
+          name: "driving"
+        - type: "vehicle"
+          signal: "speed"
+          operator: ">"
+          value: 30
+        - operator: "NOT"
+          conditions:
+            - type: "system"
+              signal: "adas_critical_event"
+              value: true
+    stream_refs:
+      - camera: "FWC"
+        fps: 1
+        required: true
+      - camera: "SCF_L"
+        fps: 0.5
+        required: false
+      - camera: "SCF_R"
+        fps: 0.5
+        required: false
+    model_pipeline:
+      type: "only_vit"
+      stages:
+        - name: "vit_stage"
+          backbone: "backbone_b"
+          heads: ["head_b5_scenery"]
+      fusion:
+        strategy: "none"
+    multi_stream:
+      strategy: "primary_secondary"
+      primary: "FWC"
+      primary_confidence_threshold: 0.7
+    scheduling:
+      frequency_hz: 1
+      max_latency_ms: 1000
+      preemptible: true
+    power_config:
+      min_power_mode: "normal"
+      degradation:
+        disable_entirely: true
+        reason: "lowest priority, disable under resource pressure"
+
+  - name: "uc3_camera_gallery"
+    description: "Camera and gallery - beauty scene auto-capture"
+    priority: 40
+    tier: "enhancement"
+    rules:
+      operator: "AND"
+      conditions:
+        - type: "scene"
+          name: "driving"
+        - operator: "NOT"
+          conditions:
+            - type: "system"
+              signal: "adas_critical_event"
+              value: true
+    stream_refs:
+      - camera: "FWC"
+        fps: 0.5
+        required: true
+      - camera: "SCF_L"
+        fps: 0.5
+        required: false
+      - camera: "SCF_R"
+        fps: 0.5
+        required: false
+    model_pipeline:
+      type: "only_vit"
+      stages:
+        - name: "vit_stage"
+          backbone: "backbone_b"
+          heads: ["head_b5_scenery"]
+      fusion:
+        strategy: "none"
+    multi_stream:
+      strategy: "single"
+      primary: "FWC"
+    scheduling:
+      frequency_hz: 0.5
+      max_latency_ms: 2000
+      preemptible: true
+    power_config:
+      min_power_mode: "normal"
+      degradation:
+        disable_entirely: true
+
+  - name: "uc4_game_gesture"
+    description: "Gaming gesture recognition control"
+    priority: 30
+    tier: "enhancement"
+    rules:
+      operator: "AND"
+      conditions:
+        - type: "scene"
+          name: "in_cabin"
+        - type: "system"
+          signal: "game_mode_active"
+          value: true
+    stream_refs:
+      - camera: "MPIC"
+        fps: 15
+        required: true
+    model_pipeline:
+      type: "only_cv"
+      stages:
+        - name: "cv_stage"
+          models: ["cv_gesture_recognition"]
+      fusion:
+        strategy: "none"
+    multi_stream:
+      strategy: "single"
+      primary: "MPIC"
+    scheduling:
+      frequency_hz: 15
+      max_latency_ms: 67
+      preemptible: true
+    power_config:
+      min_power_mode: "normal"
+      degradation:
+        reduce_fps_to: 10
+        disable_on_resource_conflict: true
+
+# =============================================================================
+# Scheduling Configuration
+# =============================================================================
+scheduling:
+  npu_config:
+    max_concurrent_models: 1  # NPU constraint: one model at a time
+    scheduling_strategy: "priority_preempt"
+    time_slice_ms: 30  # Per-model inference time slice
+
+  priority_preemption:
+    enabled: true
+    safety_tier_preempts_all: true
+    min_execution_guarantee_ms: 10  # Even low-priority gets at least this
+
+  resource_conflict_resolution:
+    same_backbone_shared: true  # UC sharing backbone_b don't conflict
+    multi_head_parallel: true  # Multiple heads on same backbone output run in parallel
+
+# =============================================================================
+# Scene Transition Rules
+# =============================================================================
+scene_transitions:
+  - from: "driving"
+    to: "parking"
+    actions:
+      keep: ["MPIC", "FWC"]
+      add: ["SVC_F", "SVC_R", "SVC_L", "SVC_R2", "RVC"]
+      reduce_fps: ["SCF_L", "SCF_R", "SCR_L", "SCR_R"]
+      remove: ["FTC"]
+      model_changes:
+        deactivate_heads: ["head_b3_special_vehicle"]
+        activate_heads: ["head_c1_person_presence", "head_c2_spot_status"]
+
+  - from: "driving"
+    to: "sentry_mode"
+    actions:
+      keep: []
+      add: ["SVC_F", "SVC_R", "SVC_L", "SVC_R2"]
+      remove: ["FWC", "FTC", "MPIC", "SCF_L", "SCF_R", "SCR_L", "SCR_R", "RVC"]
+      model_changes:
+        deactivate_all_backbones: true
+        activate_models: ["cv_human_detection", "cv_motion_detection"]
+
+  - from: "sentry_mode"
+    to: "out_cabin"
+    actions:
+      keep: ["SVC_F", "SVC_R", "SVC_L", "SVC_R2"]
+      add: ["SCF_L", "SCF_R"]
+      model_changes:
+        activate_models: ["cv_face_id"]
+
+  - from: "parking"
+    to: "driving"
+    actions:
+      keep: ["MPIC", "FWC"]
+      add: ["FTC", "SCF_L", "SCF_R", "SCR_L", "SCR_R"]
+      remove: ["SVC_F", "SVC_R", "SVC_L", "SVC_R2", "RVC"]
+      model_changes:
+        deactivate_heads: ["head_c1_person_presence", "head_c2_spot_status", "head_c3_event_type"]
+        activate_heads: ["head_b1_weather", "head_b2_lighting", "head_b3_special_vehicle", "head_b4_scene_type"]

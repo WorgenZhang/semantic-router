@@ -1,0 +1,224 @@
+{
+  "main": {
+    "id": "3c85bdf19e6b6f4e",
+    "type": "split",
+    "children": [
+      {
+        "id": "4a0cfb871114ec34",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "16f58008e95201aa",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "wiki/topics/ExtProc四阶段处理流水线.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "ExtProc四阶段处理流水线"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "8c50f0239d6af98d",
+    "type": "split",
+    "children": [
+      {
+        "id": "af0bbfad07baf737",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "8f45e953c266a48f",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "文件列表"
+            }
+          },
+          {
+            "id": "9a4681321395e79c",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "搜索"
+            }
+          },
+          {
+            "id": "aa0fb8932c19834b",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "书签"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "3b480c86149beb80",
+    "type": "split",
+    "children": [
+      {
+        "id": "1e1e49c164ac7a62",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "d1b8f3403cbe49e3",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "wiki/topics/ExtProc四阶段处理流水线.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "ExtProc四阶段处理流水线 的反向链接列表"
+            }
+          },
+          {
+            "id": "67bf73a4be31768f",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "wiki/knowledge-graph.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "knowledge-graph 的出链列表"
+            }
+          },
+          {
+            "id": "5ec4e6bd53c96edd",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "标签"
+            }
+          },
+          {
+            "id": "1f4b96352d6f0cb6",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "添加笔记属性"
+            }
+          },
+          {
+            "id": "f822eb6583a29f40",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "wiki/knowledge-graph.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "knowledge-graph 的大纲"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:打开快速切换": false,
+      "graph:查看关系图谱": false,
+      "canvas:新建白板": false,
+      "daily-notes:打开/创建今天的日记": false,
+      "templates:插入模板": false,
+      "command-palette:打开命令面板": false,
+      "bases:新建数据库": false
+    }
+  },
+  "active": "16f58008e95201aa",
+  "lastOpenFiles": [
+    "Question/config.yaml/1.md",
+    "Question/AIOS Visual Related Solution/24_AIOS_CV_Then_Vit场景下ViT的执行策略.md",
+    "Question/AIOS Visual Related Solution/24_AIOS_CVThenVit场景下ViT的执行策略.md",
+    "Question/AIOS Visual Related Solution/26_NPU单周期内高优先级UC触发后续UC还执行.md",
+    "Question/AIOS Visual Related Solution/27_NPU单周期100ms决定机制.md",
+    "Question/AIOS Visual Related Solution/28_NPU单周期超时处理机制.md",
+    "Question/AIOS Visual Related Solution/25_NPU同一周期内是否使用相同时间戳.md",
+    "Question/AIOS Visual Related Solution/27_NPU主周期100ms决定机制.md",
+    "Question/AIOS Visual Related Solution/28_NPU_单周期超时处理机制.md",
+    "Question/AIOS Visual Related Solution/27_NPU主周期时间决定机制.md",
+    "Question/AIOS Visual Related Solution/26_NPU周期内多UC并发触发策略.md",
+    "Question/AIOS Visual Related Solution/25_NPU 周期内帧时间戳策略析.md",
+    "Question/AIOS Visual Related Solution/27_NPU_主周期时间决定机制.md",
+    "Question/AIOS Visual Related Solution/26_NPU_UC_并发触发与优先级调度策略.md",
+    "Question/AIOS Visual Related Solution/25_NPU_Frame_Timestamp_策略分析.md",
+    "Question/AIOS Visual Related Solution/24_cv_then_vit 场景下 ViT 的执行策略.md",
+    "Question/AIOS Visual Related Solution/24_cv_then_vit 场景下 ViT 的执行策略_机制分析.md",
+    "Question/AIOS Visual Related Solution/24_NPU_Safety_Preemption_机制分析.md",
+    "Question/AIOS Visual Related Solution/23_AIOS_NPU_Model_Execution_Timeline.md",
+    "Question/AIOS Visual Related Solution/22_AIOS_NPU_Model_Execution_Timeline.md",
+    "Question/AIOS Visual Related Solution/22_NPU_Execution_Timeline.md",
+    "Question/AIOS Visual Related Solution/22_AIOS_Router_Scheduling_Configuration.md",
+    "Question/AIOS Visual Related Solution/aios_visual_router_scheduling_explained.md",
+    "Question/AIOS Visual Related Solution/21_AIOS_Visual_Decision_Engine_具体示例.md",
+    "Question/AIOS Visual Related Solution/21_Visual_Decision_Engine_具体示例.md",
+    "Question/AIOS Visual Related Solution/aios_visual_router_config.yaml",
+    "Question/AIOS Visual Related Solution/20_AIOS_Visual_Routing_Solution.md",
+    "Question/AIOS Visual Related Solution/AIOS Visual Related Use Cases_数据表_原始.xlsx",
+    "Question/AIOS Visual Related Solution",
+    "Question/Visual Related",
+    "Question/Model Selection",
+    "Question/负载均衡",
+    "wiki/knowledge-graph.html",
+    "wiki/graph-data.json",
+    "Question/ExtProc四阶段/Jailbreak检测/PII检测/缓存查询/Memory检索",
+    "Question/ExtProc四阶段/Jailbreak检测/PII检测/缓存查询"
+  ]
+}
