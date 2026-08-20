@@ -78,10 +78,28 @@ func (r *OpenAIRouter) modifyRequestBodyForLooper(
 ) ([]byte, error) {
 	openAIRequest.Model = upstreamModel
 
-	modifiedBody, err := serializeOpenAIRequestWithStream(
-		openAIRequest,
-		ctx.ExpectStreamingResponse,
-	)
+	// Preserve provider-specific request fields on the internal Looper hop.
+	// The OpenAI SDK parameter types intentionally discard unknown JSON fields
+	// when they are unmarshaled, so serializing openAIRequest here would lose
+	// extensions such as chat_template_kwargs, cache_control, and exact large
+	// integers. Native Anthropic requests still require the typed protocol
+	// translation path, matching ordinary auto routing.
+	var modifiedBody []byte
+	if ctx.ClientProtocol != config.ClientProtocolAnthropic {
+		modifiedBody = ctx.workingRequestBody()
+	}
+	var err error
+	if len(modifiedBody) > 0 {
+		modifiedBody, err = rewriteModelInBody(modifiedBody, upstreamModel)
+		if err == nil && ctx.ExpectStreamingResponse {
+			modifiedBody = addStreamFieldsFast(modifiedBody)
+		}
+	} else {
+		modifiedBody, err = serializeOpenAIRequestWithStream(
+			openAIRequest,
+			ctx.ExpectStreamingResponse,
+		)
+	}
 	if err != nil {
 		logging.ComponentErrorEvent("extproc", "looper_request_serialize_failed", map[string]interface{}{
 			"request_id": ctx.RequestID,
@@ -256,6 +274,25 @@ func (r *OpenAIRouter) handleLooperInternalRequestWithPlugins(
 	if response := r.runLooperInternalPlugins(ctx, decisionName); response != nil {
 		return response, nil
 	}
+	workingBody := ctx.workingRequestBody()
+	workingBody, compressionErr := r.applyContextCompressionPolicy(ctx, workingBody)
+	if compressionErr != nil {
+		return r.createErrorResponse(
+			500,
+			"Context compression failed under fail_closed policy",
+		), nil
+	}
+	ctx.setWorkingRequestBody(workingBody)
+	if ctx.requestBodyMutated() {
+		openAIRequest, err = parseOpenAIRequest(workingBody)
+		if err != nil {
+			logging.ComponentErrorEvent("extproc", "looper_mutated_request_reparse_failed", map[string]interface{}{
+				"request_id": ctx.RequestID,
+				"error":      err.Error(),
+			})
+			return r.createErrorResponse(500, "Failed to process looper request"), nil
+		}
+	}
 
 	route, err := r.resolveLooperBackendRoute(ctx, modelName)
 	if err != nil {
@@ -404,7 +441,7 @@ func applyLooperReasoningContext(
 func (r *OpenAIRouter) parseLooperRequestForPlugins(
 	ctx *RequestContext,
 ) (*openai.ChatCompletionNewParams, error) {
-	openAIRequest, err := parseOpenAIRequest(ctx.OriginalRequestBody)
+	openAIRequest, err := parseOpenAIRequest(ctx.workingRequestBody())
 	if err != nil {
 		logging.ComponentErrorEvent("extproc", "looper_request_parse_failed", map[string]interface{}{
 			"request_id": ctx.RequestID,

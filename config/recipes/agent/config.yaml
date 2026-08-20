@@ -23,7 +23,7 @@ global:
         port: 5432
         database: vsr
         user: router
-        password: router-secret
+        password: ${POSTGRES_PASSWORD}
         ssl_mode: disable
         table_name: router_replay_records
   router:
@@ -48,7 +48,7 @@ global:
           switch_margin: 0.05
           stability_weight: 1.0
   stores:
-    semantic_cache:
+    response_cache:
       enabled: false
       backend_type: memory
 

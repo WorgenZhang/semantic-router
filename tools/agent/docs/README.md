@@ -52,7 +52,6 @@ Start here when resolving task context mechanically:
 - [environments.md](environments.md)
 - [local-rules.md](local-rules.md)
 - [skill-catalog.md](skill-catalog.md)
-- [.agents/skills/harness/SKILL.md](../../../.agents/skills/harness/SKILL.md)
 
 The default loop is:
 
@@ -77,6 +76,7 @@ make agent-ci-gate CHANGED_FILES="..."
 - [../../tools/agent/repo-manifest.yaml](../../../tools/agent/repo-manifest.yaml)
 - [../../tools/agent/context-map.yaml](../../../tools/agent/context-map.yaml)
 - [../../tools/agent/skill-registry.yaml](../../../tools/agent/skill-registry.yaml)
+- [../../tools/agent/test-domain-registry.yaml](../../../tools/agent/test-domain-registry.yaml)
 - [../../tools/agent/task-matrix.yaml](../../../tools/agent/task-matrix.yaml)
 - [../../tools/agent/e2e-profile-map.yaml](../../../tools/agent/e2e-profile-map.yaml)
 - [../../tools/agent/structure-rules.yaml](../../../tools/agent/structure-rules.yaml)

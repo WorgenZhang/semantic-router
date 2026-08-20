@@ -362,7 +362,19 @@ func validateOneDecisionPluginContracts(
 	cfg *RouterConfig,
 	decision *Decision,
 ) error {
+	seenPluginTypes := make(map[string]string, len(decision.Plugins))
 	for index, plugin := range decision.Plugins {
+		normalizedType := NormalizeDecisionPluginType(plugin.Type)
+		if previous, exists := seenPluginTypes[normalizedType]; exists {
+			return fmt.Errorf(
+				"decision %q has duplicate plugin %q via %q and %q",
+				decision.Name,
+				normalizedType,
+				previous,
+				plugin.Type,
+			)
+		}
+		seenPluginTypes[normalizedType] = plugin.Type
 		if err := validateDecisionPluginPayload(
 			decision.Name,
 			index,
@@ -399,7 +411,7 @@ func validateDecisionRAGAndMemoryPlugins(cfg *RouterConfig, decision *Decision) 
 		}
 	}
 
-	cacheCfg := decision.GetSemanticCacheConfig()
+	cacheCfg := decision.GetResponseCacheConfig()
 	memCfg := decision.GetMemoryConfig()
 	cacheActive := cacheCfg != nil && cacheCfg.Enabled
 	ragActive := ragCfg != nil && ragCfg.Enabled
@@ -408,10 +420,54 @@ func validateDecisionRAGAndMemoryPlugins(cfg *RouterConfig, decision *Decision) 
 		memActive = memCfg == nil
 	}
 	if cacheActive && (ragActive || memActive) {
-		logging.Warnf("Decision '%s': semantic-cache is enabled alongside %s. "+
+		logging.Warnf("Decision '%s': response_cache is enabled alongside %s. "+
 			"Cache reads will be automatically bypassed to preserve personalized responses. "+
 			"Cache writes still occur for observability. Remove the cache plugin if this is intentional.",
 			decision.Name, cachePersonalizationConflictDescription(ragActive, memActive))
+	}
+	return validateDecisionContextCompressionRecovery(cfg, decision)
+}
+
+func validateDecisionContextCompressionRecovery(
+	cfg *RouterConfig,
+	decision *Decision,
+) error {
+	compression := decision.GetContextCompressionConfig()
+	if compression == nil ||
+		compression.Recovery == nil ||
+		!compression.Recovery.Enabled {
+		return nil
+	}
+	if !cfg.Looper.IsEnabled() {
+		return fmt.Errorf(
+			"decision %q: context_compression recovery requires global.integrations.looper.endpoint",
+			decision.Name,
+		)
+	}
+	store := strings.TrimSpace(compression.Recovery.Store)
+	if store == "response_cache" {
+		store = strings.TrimSpace(cfg.SemanticCache.BackendType)
+	}
+	switch store {
+	case "redis":
+		if cfg.SemanticCache.Redis == nil {
+			return fmt.Errorf(
+				"decision %q: context_compression recovery requires response_cache.redis configuration",
+				decision.Name,
+			)
+		}
+	case "valkey":
+		if cfg.SemanticCache.Valkey == nil {
+			return fmt.Errorf(
+				"decision %q: context_compression recovery requires response_cache.valkey configuration",
+				decision.Name,
+			)
+		}
+	default:
+		return fmt.Errorf(
+			"decision %q: context_compression recovery requires a Redis or Valkey shared store",
+			decision.Name,
+		)
 	}
 	return nil
 }
@@ -622,32 +678,41 @@ func expectedAlgorithmBlock(normalizedType string) (string, bool) {
 
 func validateSpecializedAlgorithmConfig(decisionName string, modelRefs []ModelRef, normalizedType string, algorithm *AlgorithmConfig) error {
 	switch normalizedType {
+	case "confidence":
+		return wrapAlgorithmValidationError(decisionName, "confidence", ValidateConfidenceAlgorithmConfig(algorithm.Confidence))
 	case "latency_aware":
-		if algorithm.LatencyAware == nil {
-			return fmt.Errorf("decision '%s': algorithm.type=latency_aware requires algorithm.latency_aware configuration", decisionName)
-		}
-		if err := validateLatencyAwareAlgorithmConfig(algorithm.LatencyAware); err != nil {
-			return fmt.Errorf("decision '%s', algorithm.latency_aware: %w", decisionName, err)
-		}
+		return validateDecisionLatencyAwareAlgorithm(decisionName, algorithm.LatencyAware)
 	case "remom":
-		if err := ValidateReMoMAlgorithmConfig(algorithm.ReMoM); err != nil {
-			return fmt.Errorf("decision '%s', algorithm.remom: %w", decisionName, err)
-		}
-		if err := ValidateReMoMModelRefs(algorithm.ReMoM, modelRefs); err != nil {
-			return fmt.Errorf("decision '%s', algorithm.remom: %w", decisionName, err)
-		}
+		return validateDecisionReMoMAlgorithm(decisionName, modelRefs, algorithm.ReMoM)
 	case "fusion":
-		if err := ValidateFusionAlgorithmConfig(algorithm.Fusion); err != nil {
-			return fmt.Errorf("decision '%s', algorithm.fusion: %w", decisionName, err)
-		}
+		return wrapAlgorithmValidationError(decisionName, "fusion", ValidateFusionAlgorithmConfig(algorithm.Fusion))
 	case "workflows":
-		if err := ValidateWorkflowsAlgorithmConfig(algorithm.Workflows); err != nil {
-			return fmt.Errorf("decision '%s', algorithm.workflows: %w", decisionName, err)
-		}
+		return wrapAlgorithmValidationError(decisionName, "workflows", ValidateWorkflowsAlgorithmConfig(algorithm.Workflows))
 	case "prompt":
 		return validatePromptAlgorithmConfig(decisionName, modelRefs, algorithm)
 	}
 	return nil
+}
+
+func wrapAlgorithmValidationError(decisionName, algorithmType string, err error) error {
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("decision '%s', algorithm.%s: %w", decisionName, algorithmType, err)
+}
+
+func validateDecisionLatencyAwareAlgorithm(decisionName string, cfg *LatencyAwareAlgorithmConfig) error {
+	if cfg == nil {
+		return fmt.Errorf("decision '%s': algorithm.type=latency_aware requires algorithm.latency_aware configuration", decisionName)
+	}
+	return wrapAlgorithmValidationError(decisionName, "latency_aware", validateLatencyAwareAlgorithmConfig(cfg))
+}
+
+func validateDecisionReMoMAlgorithm(decisionName string, modelRefs []ModelRef, cfg *ReMoMAlgorithmConfig) error {
+	if err := ValidateReMoMAlgorithmConfig(cfg); err != nil {
+		return wrapAlgorithmValidationError(decisionName, "remom", err)
+	}
+	return wrapAlgorithmValidationError(decisionName, "remom", ValidateReMoMModelRefs(cfg, modelRefs))
 }
 
 // validateLatencyAwareAlgorithmConfig validates latency_aware algorithm configuration.
@@ -694,42 +759,4 @@ func validateLatencyAwarePercentile(name string, value int, enabled bool) error 
 		return fmt.Errorf("%s must be between 1 and 100, got: %d", name, value)
 	}
 	return nil
-}
-
-// validateLoRAName checks if the specified LoRA name is defined in the
-// canonical routing model catalog for the selected model.
-func validateLoRAName(cfg *RouterConfig, modelName string, loraName string) error {
-	modelParams, exists := cfg.ModelConfig[modelName]
-	if !exists {
-		return fmt.Errorf(
-			"lora_name %q specified but model %q is not declared in routing.modelCards",
-			loraName,
-			modelName,
-		)
-	}
-
-	if len(modelParams.LoRAs) == 0 {
-		return fmt.Errorf(
-			"lora_name %q specified but model %q declares no routing.modelCards[].loras entries",
-			loraName,
-			modelName,
-		)
-	}
-
-	for _, lora := range modelParams.LoRAs {
-		if lora.Name == loraName {
-			return nil
-		}
-	}
-
-	availableLoRAs := make([]string, len(modelParams.LoRAs))
-	for i, lora := range modelParams.LoRAs {
-		availableLoRAs[i] = lora.Name
-	}
-	return fmt.Errorf(
-		"lora_name %q is not declared in routing.modelCards[%q].loras. Available LoRAs: %v",
-		loraName,
-		modelName,
-		availableLoRAs,
-	)
 }

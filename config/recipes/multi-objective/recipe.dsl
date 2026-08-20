@@ -95,27 +95,27 @@ MODEL local/qwen3.6-35b-flash {
 # =============================================================================
 
 ENTRYPOINT {
-  model_names: ["vllm-sr/mom-balanced-v1"]
+  model_names: ["vllm-sr/mom-v1-blend"]
   recipe: "balanced"
 }
 
 ENTRYPOINT {
-  model_names: ["vllm-sr/mom-flash-v1"]
+  model_names: ["vllm-sr/mom-v1-flash"]
   recipe: "speed-first"
 }
 
 ENTRYPOINT {
-  model_names: ["vllm-sr/mom-economy-v1"]
+  model_names: ["vllm-sr/mom-v1-lite"]
   recipe: "cost-first"
 }
 
 ENTRYPOINT {
-  model_names: ["vllm-sr/mom-frontier-v1"]
+  model_names: ["vllm-sr/mom-v1-ultra"]
   recipe: "accuracy-first"
 }
 
 ENTRYPOINT {
-  model_names: ["vllm-sr/mom-private-v1"]
+  model_names: ["vllm-sr/mom-v1-vault"]
   recipe: "privacy-first"
 }
 
@@ -381,7 +381,7 @@ RECIPE speed-first (description = "Prefer the lowest observed latency while pres
       on_no_candidates: "first"
       weights: { latency: 0.85, load: 0.15 }
     }
-    PLUGIN semantic_cache {
+    PLUGIN response_cache {
       enabled: true
       similarity_threshold: 0.9
       ttl_seconds: 900
@@ -460,7 +460,7 @@ RECIPE cost-first (description = "Keep every request local and spend additional 
       on_no_candidates: "first"
       weights: { cost: 0.8, load: 0.2 }
     }
-    PLUGIN semantic_cache {
+    PLUGIN response_cache {
       enabled: true
       similarity_threshold: 0.88
       ttl_seconds: 3600

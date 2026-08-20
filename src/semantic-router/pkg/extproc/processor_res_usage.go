@@ -1,6 +1,7 @@
 package extproc
 
 import (
+	"strings"
 	"time"
 
 	"github.com/openai/openai-go"
@@ -150,10 +151,37 @@ func (r *OpenAIRouter) calibrateTokenEstimator(ctx *RequestContext, actualPrompt
 	if category := tokenCalibrationCategory(ctx); category != "" {
 		classifier.ObserveTokenUsage(category, byteLen, actualPromptTokens)
 	}
+	if compressionCategory := contextCompressionTokenCalibrationCategory(ctx); compressionCategory != "" {
+		classifier.ObserveTokenUsage(
+			compressionCategory,
+			len(ctx.workingRequestBody()),
+			actualPromptTokens,
+		)
+	}
+}
+
+func contextCompressionTokenCalibrationCategory(ctx *RequestContext) string {
+	if ctx == nil || ctx.ContextCompressionRevision == "" {
+		return ""
+	}
+	model := strings.TrimSpace(ctx.VSRSelectedModel)
+	if model == "" {
+		model = strings.TrimSpace(ctx.RequestModel)
+	}
+	if model == "" {
+		return ""
+	}
+	return "context_compression:" + model
 }
 
 func tokenCalibrationByteLen(ctx *RequestContext) int {
 	if ctx == nil {
+		return 0
+	}
+	// Structured JSON uses a separate dense-token floor and images use a fixed
+	// reserve. Treating either as prose bytes would poison the online 4B/token
+	// calibrator with provider-specific schema/vision costs.
+	if ctx.VSRContextHasNonText {
 		return 0
 	}
 	if ctx.VSRContextTextBytes > 0 {
@@ -229,7 +257,7 @@ func extractStreamingUsage(ctx *RequestContext) openai.CompletionUsage {
 	}
 	usageMap, ok := ctx.StreamingMetadata["usage"].(map[string]interface{})
 	if !ok {
-		return usage
+		return mergeProviderStreamingUsage(ctx, usage)
 	}
 
 	if promptTokens, ok := usageMap["prompt_tokens"].(float64); ok {
@@ -241,7 +269,7 @@ func extractStreamingUsage(ctx *RequestContext) openai.CompletionUsage {
 	if totalTokens, ok := usageMap["total_tokens"].(float64); ok {
 		usage.TotalTokens = int64(totalTokens)
 	}
-	return usage
+	return mergeProviderStreamingUsage(ctx, usage)
 }
 
 func streamingPromptTokenDetails(ctx *RequestContext, promptTokens int) (cached int, cachedReported bool, cacheWrite int, cacheWriteReported bool) {
@@ -270,6 +298,13 @@ func streamingPromptTokenDetails(ctx *RequestContext, promptTokens int) (cached 
 			}
 		}
 	}
+	cached, cachedReported, cacheWrite, cacheWriteReported = mergeProviderStreamingTokenDetails(
+		ctx,
+		cached,
+		cachedReported,
+		cacheWrite,
+		cacheWriteReported,
+	)
 	normalized := normalizeResponseUsage(responseUsageMetrics{
 		promptTokens:       promptTokens,
 		cachedPromptTokens: cached,

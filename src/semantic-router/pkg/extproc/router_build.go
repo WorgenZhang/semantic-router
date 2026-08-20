@@ -16,6 +16,7 @@ import (
 	"github.com/vllm-project/semantic-router/src/semantic-router/pkg/selection"
 	"github.com/vllm-project/semantic-router/src/semantic-router/pkg/selection/lookuptable"
 	"github.com/vllm-project/semantic-router/src/semantic-router/pkg/services"
+	"github.com/vllm-project/semantic-router/src/semantic-router/pkg/sessiontelemetry"
 	"github.com/vllm-project/semantic-router/src/semantic-router/pkg/tools"
 )
 
@@ -45,6 +46,7 @@ type routerComponents struct {
 	credentialResolver   *authz.CredentialResolver
 	rateLimiter          *ratelimit.RateLimitResolver
 	lookupTableCancel    func()
+	routerSessionStore   *sessiontelemetry.RouterSessionStateStoreSlot
 }
 
 // NewOpenAIRouter creates a new OpenAI API router instance.
@@ -60,6 +62,7 @@ func NewOpenAIRouter(configPath string) (*OpenAIRouter, error) {
 	}
 
 	config.Replace(cfg)
+	publishRouterLearningStateStore(router)
 	logLoadedRouterConfig(configPath, cfg)
 	return router, nil
 }
@@ -126,11 +129,31 @@ func parseRouterConfigFile(configPath string) (*config.RouterConfig, error) {
 }
 
 func buildOpenAIRouterFromConfig(cfg *config.RouterConfig) (*OpenAIRouter, error) {
+	if err := validateResponseCacheScopeSecret(cfg); err != nil {
+		return nil, err
+	}
 	components, err := buildRouterComponents(cfg)
 	if err != nil {
 		return nil, err
 	}
 	return components.buildRouter(), nil
+}
+
+func validateResponseCacheScopeSecret(cfg *config.RouterConfig) error {
+	if cfg == nil || !cfg.ManagementAPI.RemoteExposure || cache.UserScopeSecretConfigured() {
+		return nil
+	}
+	for _, decision := range cfg.AllRoutingDecisions() {
+		plugin := decision.GetResponseCacheConfig()
+		if plugin == nil || !plugin.Enabled || plugin.Scope == "global" {
+			continue
+		}
+		return fmt.Errorf(
+			"USER_SCOPE_NAMESPACE_SECRET is required for remotely exposed response_cache scope %q",
+			plugin.Scope,
+		)
+	}
+	return nil
 }
 
 func logLoadedRouterConfig(configPath string, cfg *config.RouterConfig) {
@@ -150,6 +173,13 @@ func logLoadedRouterConfig(configPath string, cfg *config.RouterConfig) {
 }
 
 func buildRouterComponents(cfg *config.RouterConfig) (*routerComponents, error) {
+	routerSessionStore := buildRouterLearningStateStore(cfg)
+	keepRouterSessionStore := false
+	defer func() {
+		if !keepRouterSessionStore && routerSessionStore != nil {
+			_ = routerSessionStore.RetireAndClose()
+		}
+	}()
 	mappings, err := loadClassifierMappings(cfg)
 	if err != nil {
 		return nil, err
@@ -176,7 +206,10 @@ func buildRouterComponents(cfg *config.RouterConfig) (*routerComponents, error) 
 	}
 
 	responseAPIFilter := createResponseAPIFilter(cfg)
-	replayRecorders, replayRecorder, replayStoreShared := createReplayRuntime(cfg)
+	replayRecorders, replayRecorder, replayStoreShared, err := createReplayRuntime(cfg)
+	if err != nil {
+		return nil, err
+	}
 	var replayReaderForLookup store.Reader
 	if replayRecorder != nil {
 		replayReaderForLookup = replayRecorder.Reader()
@@ -197,7 +230,7 @@ func buildRouterComponents(cfg *config.RouterConfig) (*routerComponents, error) 
 		})
 	}
 
-	return &routerComponents{
+	components := &routerComponents{
 		cfg:                  cfg,
 		categoryDescriptions: categoryDescriptions,
 		classifier:           classifier,
@@ -217,29 +250,37 @@ func buildRouterComponents(cfg *config.RouterConfig) (*routerComponents, error) 
 		credentialResolver:   credentialResolver,
 		rateLimiter:          rateLimiter,
 		lookupTableCancel:    lookupTableCancel,
-	}, nil
+		routerSessionStore:   routerSessionStore,
+	}
+	keepRouterSessionStore = true
+	return components, nil
 }
 
 func (components *routerComponents) buildRouter() *OpenAIRouter {
-	return &OpenAIRouter{
-		Config:                components.cfg,
-		CategoryDescriptions:  components.categoryDescriptions,
-		Classifier:            components.classifier,
-		RecipeClassifiers:     components.recipeClassifiers,
-		ClassificationService: components.classificationSvc,
-		Cache:                 components.semanticCache,
-		ToolsDatabase:         components.toolsDatabase,
-		ResponseAPIFilter:     components.responseAPIFilter,
-		ReplayRecorder:        components.replayRecorder,
-		ReplayStoreShared:     components.replayStoreShared,
-		ModelSelector:         components.modelSelector,
-		RecipeModelSelectors:  components.recipeModelSelectors,
-		LookupTable:           components.lookupTable,
-		ReplayRecorders:       components.replayRecorders,
-		MemoryStore:           components.memoryStore,
-		MemoryExtractor:       components.memoryExtractor,
-		CredentialResolver:    components.credentialResolver,
-		RateLimiter:           components.rateLimiter,
-		lookupTableCancel:     components.lookupTableCancel,
+	router := &OpenAIRouter{
+		Config:                  components.cfg,
+		CategoryDescriptions:    components.categoryDescriptions,
+		Classifier:              components.classifier,
+		RecipeClassifiers:       components.recipeClassifiers,
+		ClassificationService:   components.classificationSvc,
+		Cache:                   components.semanticCache,
+		ToolsDatabase:           components.toolsDatabase,
+		ResponseAPIFilter:       components.responseAPIFilter,
+		ReplayRecorder:          components.replayRecorder,
+		ReplayStoreShared:       components.replayStoreShared,
+		ModelSelector:           components.modelSelector,
+		RecipeModelSelectors:    components.recipeModelSelectors,
+		LookupTable:             components.lookupTable,
+		ReplayRecorders:         components.replayRecorders,
+		MemoryStore:             components.memoryStore,
+		MemoryExtractor:         components.memoryExtractor,
+		CredentialResolver:      components.credentialResolver,
+		RateLimiter:             components.rateLimiter,
+		lookupTableCancel:       components.lookupTableCancel,
+		routerSessionStateStore: components.routerSessionStore,
 	}
+	if components.classificationSvc != nil {
+		components.classificationSvc.SetEvalModelSelector(router)
+	}
+	return router
 }
